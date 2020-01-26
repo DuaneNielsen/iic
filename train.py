@@ -49,8 +49,8 @@ if __name__ == '__main__':
     """ data """
     datapack = package.datasets[args.dataset_name]
     train, test = datapack.make(args.dataset_train_len, args.dataset_test_len, data_root=args.dataroot)
-    train_l = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True, pin_memory=True)
-    test_l = DataLoader(test, batch_size=args.batch_size, shuffle=True, drop_last=True, pin_memory=True)
+    train_l = DataLoader(train, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
+    test_l = DataLoader(test, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
     nonlinearity, kwargs = nn.LeakyReLU, {"inplace": True}
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     for epoch in range(1, args.epochs + 1):
 
         """ training """
-        batch = tqdm(train_l, total=len(train) // args.batch_size)
+        batch = tqdm(train_l, total=len(train) // args.batchsize)
         for i, (x, _) in enumerate(batch):
             x = x.to(args.device)
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         """ test  """
         with torch.no_grad():
             ll = []
-            batch = tqdm(test_l, total=len(test) // args.batch_size)
+            batch = tqdm(test_l, total=len(test) // args.batchsize)
             for i, (x, _) in enumerate(batch):
                 x = x.to(args.device)
 

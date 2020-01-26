@@ -23,6 +23,33 @@ train.py --config config/cifar10.yaml --display 10 --batchsize 64  --epochs 200
 ```
 Train an autoencoder on cifar10, with batch size 64 and for 200 passes through the training set
 
+### Configuration
+
+Configuration flags can be specified in argparse parameters, or in yaml files, or in both.
+
+Precedents is
+* Arguments from command line
+* Arguments from the config file
+* Default value if specified in config.py
+
+Yaml files can contain nested name-value pairs and they will be flattened as below...
+
+```yaml
+dataset:
+  name: celeba
+  train_len: 10000
+  test_len: 1000
+  
+```
+
+will be flattened to argparse arguments as below
+
+```
+--dataset_name celeba
+--dataset_train_len 10000
+--dataset_test_len: 1000
+```
+
 ### Data package
 
 A data package is an object that contains everything required to load the data for training.
