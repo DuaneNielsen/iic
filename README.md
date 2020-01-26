@@ -10,6 +10,7 @@ Features
 * Simple dataset management
 * DL Network blocks configured by both strings and modules
 * Tensorboard logging
+* Real time visualization of layers and outputs during training
 
 ### Basic command usage
 ```commandline
