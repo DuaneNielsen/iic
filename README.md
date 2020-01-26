@@ -27,8 +27,8 @@ Train an autoencoder on cifar10, with batch size 64 and for 200 passes through t
 
 Configuration flags can be specified in argparse parameters, or in yaml files, or in both.
 
---config parameter is used to specify a yaml file to load parameters from.  The yaml file will be retured as if argparse 
-arguments had been passed on the command line.
+--config parameter is used to specify a yaml file to load parameters from.  The yaml file contents will be added to the 
+argparse namespace object.
 
 Precedence is
 * Arguments from command line
