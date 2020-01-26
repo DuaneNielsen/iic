@@ -27,22 +27,24 @@ Train an autoencoder on cifar10, with batch size 64 and for 200 passes through t
 
 Configuration flags can be specified in argparse parameters, or in yaml files, or in both.
 
-Precedents is
+--config parameter is used to specify a yaml file to load parameters from.  The yaml file will be retured as if argparse 
+arguments had been passed on the command line.
+
+Precedence is
 * Arguments from command line
 * Arguments from the config file
 * Default value if specified in config.py
 
-Yaml files can contain nested name-value pairs and they will be flattened as below...
+Yaml files can contain nested name-value pairs and they will be flattened
 
 ```yaml
 dataset:
   name: celeba
   train_len: 10000
   test_len: 1000
-  
 ```
 
-will be flattened to argparse arguments as below
+will be flattened to argparse arguments
 
 ```
 --dataset_name celeba
