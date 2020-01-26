@@ -85,3 +85,11 @@ decoder_core = vgg.make_layers([512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128
 
 M -> Max Pooling
 U -> Linear Upsample
+
+### Duplicating this project
+
+```commandline
+git clone --bare https://github.com/DuaneNielsen/deep_learning_base.git
+cd deep_learning_base.git/
+git push --mirror https://github.com/DuaneNielsen/<NEW REPO NAME>.git
+```
