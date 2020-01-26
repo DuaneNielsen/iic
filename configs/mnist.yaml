@@ -1,0 +1,10 @@
+dataset:
+  name: mnist
+
+model:
+  type: G
+  in_channels: 1
+  z_channels: 16
+
+epochs: 100
+batch_size: 32

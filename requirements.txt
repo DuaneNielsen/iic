@@ -1,0 +1,8 @@
+torch
+torchvision
+tqdm
+colorama
+opencv-python
+numpy
+pyyaml
+tensorboardX

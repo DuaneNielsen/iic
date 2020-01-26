@@ -1,0 +1,12 @@
+dataset:
+  name: celeba
+  train_len: 10000
+  test_len: 500
+
+model:
+  type: F
+  in_channels: 3
+  z_channels: 16
+
+epochs: 100
+batch_size: 32
