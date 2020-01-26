@@ -11,19 +11,18 @@ Features
 * DL Network blocks configured by both strings and modules
 * Tensorboard logging
 
-###Basic command usage
+### Basic command usage
 ```commandline
 train.py --config config/cifar10.yaml --display 10
 ```
 Train an autoencoder on cifar10, displaying images every 10 batches
 
-###Basic command usage
 ```commandline
 train.py --config config/cifar10.yaml --display 10 --batchsize 64  --epochs 200 
 ```
 Train an autoencoder on cifar10, with batch size 64 and for 200 passes through the training set
 
-###Data package
+### Data package
 
 A data package is an object that contains everything required to load the data for training.
 
