@@ -8,7 +8,7 @@ Features
 * Convention over configuration management from yaml files and command line
 * Simple checkpoint and restore system
 * Simple dataset management
-* DL Network blocks configured by both strings and modules
+* Layer builder for building the boring bits
 * Tensorboard logging
 * Real time visualization of layers and outputs during training
 
