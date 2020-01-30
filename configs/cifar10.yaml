@@ -4,7 +4,10 @@ dataset:
   test_len: 500
 
 model:
-  type: G
+  name: typeg_autoencoder
+  type: conv
+  encoder: [3, 64, 128, 'M', 256, 256, 'M', 512, 512]
+  decoder: [512, 512, 'U', 256, 256, 'U', 128, 64, 3]
   in_channels: 3
   z_channels: 16
 

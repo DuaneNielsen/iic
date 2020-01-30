@@ -1,0 +1,11 @@
+dataset:
+  name: mnist
+
+model:
+  name: mnist_fc_autoencoder
+  type: fc
+  encoder: [784, 196, 48, 10]
+  decoder: [10, 48, 196, 784]
+
+epochs: 100
+batchsize: 32

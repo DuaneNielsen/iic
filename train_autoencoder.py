@@ -7,7 +7,7 @@ from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
 import statistics as stats
-from models import vgg, mnn, autoencoder
+from models import mnn, autoencoder
 from utils.viewer import UniImageViewer, make_grid
 import datasets.package as package
 from config import config
@@ -27,12 +27,16 @@ def log(phase):
 
     if args.display is not None and i % args.display == 0:
         recon = torch.cat((x[0], x_[0]), dim=2)
-        latent = make_grid(z[0].unsqueeze(1), 4, 4)
+        writer.add_image(f'{phase}_recon', recon, global_step)
+
         if args.display:
             view_in.render(recon)
-            view_z.render(latent)
-        writer.add_image(f'{phase}_recon', recon, global_step)
-        writer.add_image(f'{phase}_latent', latent.squeeze(0), global_step)
+
+        if args.model_type != 'fc':
+            latent = make_grid(z[0].unsqueeze(1), 4, 4)
+            writer.add_image(f'{phase}_latent', latent.squeeze(0), global_step)
+            if args.display:
+                view_z.render(latent)
 
 
 if __name__ == '__main__':
@@ -42,7 +46,7 @@ if __name__ == '__main__':
 
     """ variables """
     best_loss = 100.0
-    run_dir = f'data/models/autoencoders/{args.dataset_name}/{args.model_type}/run_{args.run_id}'
+    run_dir = f'data/models/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
     writer = SummaryWriter(log_dir=run_dir)
     global_step = 0
 
@@ -53,16 +57,18 @@ if __name__ == '__main__':
     test_l = DataLoader(test, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
-    nonlinearity, kwargs = nn.LeakyReLU, {"inplace": True}
-    encoder_core = vgg.make_layers(vgg.vgg_cfg[args.model_type], nonlinearity=nonlinearity, nonlinearity_kwargs=kwargs)
-    encoder = mnn.Unit(args.model_in_channels, args.model_z_channels, encoder_core)
-    decoder_core = vgg.make_layers(vgg.decoder_cfg[args.model_type], nonlinearity=nonlinearity, nonlinearity_kwargs=kwargs)
-    decoder = mnn.Unit(args.model_z_channels, args.model_in_channels, decoder_core)
+    encoder = mnn.make_layers(args.model_encoder, type=args.model_type)
+    decoder = mnn.make_layers(args.model_decoder, type=args.model_type)
 
-    auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
+    if args.model_type == 'conv':
+        auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
+    elif args.model_type == 'fc':
+        auto_encoder = autoencoder.LinearAutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
+    else:
+        raise Exception('model type string invalid')
 
     if args.load is not None:
-        auto_encoder.load(args.load)
+        auto_encoder.load_state_dict(torch.load(args.load))
 
     """ optimizer """
     if args.optimizer == 'Adam':
@@ -99,7 +105,7 @@ if __name__ == '__main__':
             log('train')
 
             if i % args.checkpoint_freq == 0 and args.demo == 0:
-                auto_encoder.save(run_dir + '/checkpoint')
+                torch.save(auto_encoder.state_dict(), run_dir + '/checkpoint')
 
             global_step += 1
 
@@ -129,6 +135,6 @@ if __name__ == '__main__':
 
         """ save if model improved """
         if ave_loss <= best_loss and not args.demo:
-            auto_encoder.save(run_dir + '/best')
+            torch.save(auto_encoder.state_dict(), run_dir + '/best')
 
 

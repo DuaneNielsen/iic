@@ -76,11 +76,11 @@ It works the same as Pytorch built-in layer builder, currently it only builds VG
 for example
 
 ```python
-import models.vgg as vgg
+from models.mnn import make_layers
 
-encoder_core = vgg.make_layers([64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'])
+encoder_core = make_layers([64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'])
 
-decoder_core = vgg.make_layers([512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128, 'U', 64, 'U'])
+decoder_core = make_layers([512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128, 'U', 64, 'U'])
 ```
 
 M -> Max Pooling
