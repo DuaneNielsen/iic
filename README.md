@@ -67,6 +67,36 @@ train, test = datapack.make(train_len=10000, test_len=400, data_root='data')
 
 get a training set of length 1000 and a test set of length 400
 
+### Example config
+
+for training VGG16 on CIFAR 10 with a custom SGD schedule  
+
+```yaml
+batchsize: 128
+epochs: 350
+
+dataset:
+  name: cifar-10-normed
+
+model:
+  name: VGG16
+  type: conv
+  encoder: [3, 64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+
+optim:
+  class: SGD
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  class: MultiStepLR
+  milestones: [150, 250]
+  gamma: 0.1
+```
+
+see more example configs in the configs directory of the project
+
 ### Configuring the optimizers
 
 ```yaml
