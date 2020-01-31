@@ -7,11 +7,11 @@ import re
 
 
 class NullScheduler:
-    """ Empty scheduler to used as a placeholder to keep code compatible"""
+    """ Empty scheduler for use as a placeholder to keep code compatible"""
     def __init__(self):
         pass
 
-    def step(self, *args):
+    def step(self, *args, **kwargs):
         pass
 
 
@@ -32,6 +32,13 @@ def get_kwargs(args, key):
 
 
 def get_optim(args, parameters):
+    """
+    Reads the configuration and constructs a scheduler and optimizer
+    :param args: the configuration Namespace
+    :param parameters: model.parameters()
+    :return: optimizer, scheduler
+    if scheduler not specified a placeholder scheduler will be returned
+    """
     optim_class, optim_kwargs = get_kwargs(args, 'optim')
     optim_class = getattr(torch.optim, optim_class)
     optim = optim_class(parameters, **optim_kwargs)
@@ -47,7 +54,7 @@ def config(args=None):
     """
     Reads the command switches and creates a config
     Command line switches override config files
-    :return:
+    :return: a Namespace of args
     """
 
     """ config """
@@ -97,6 +104,12 @@ def config(args=None):
         return dict(items)
 
     def set_if_not_set(args, dict):
+        """
+        Sets an argument if it's not already set in the args
+        :param args: args namespace
+        :param dict: a dict containing arguments to check
+        :return:
+        """
         for key, value in dict.items():
             if key in vars(args) and vars(args)[key] is None:
                 vars(args)[key] = dict[key]
@@ -120,12 +133,14 @@ def config(args=None):
         |\\.(?:nan|NaN|NAN))$''', re.X),
         list(u'-+0123456789.'))
 
+    """ read the config file """
     if args.config is not None:
         with Path(args.config).open() as f:
             conf = yaml.load(f, Loader=loader)
             conf = flatten(conf)
             args = set_if_not_set(args, conf)
 
+    """ args not set will be set to a default value """
     defaults = {
         'optim_class': 'Adam',
         'optim_lr': 1e-4,
@@ -137,12 +152,17 @@ def config(args=None):
 
     args = set_if_not_set(args, defaults)
 
+    """ default to cuda:0 if device is not set"""
     if args.device is None:
         args.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     else:
         args.device = torch.device(args.device)
 
     def counter():
+        """
+        counter to keep track of run id
+        creates a file .run_id in the current directory which stores the most recent id
+        """
         run_id_pid = Path('./.run_id')
         count = 1
         if run_id_pid.exists():
@@ -157,6 +177,7 @@ def config(args=None):
                 f.write(str(count))
         return count
 
+    ''' if run_id not explicitly set, then guess it'''
     if args.run_id == -1:
         args.run_id = counter()
 

@@ -71,6 +71,7 @@ def log_epoch(confusion):
 
 if __name__ == '__main__':
 
+    """  configuration """
     args = config.config()
 
     """ variables """
