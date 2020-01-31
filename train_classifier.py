@@ -126,9 +126,7 @@ if __name__ == '__main__':
             batch.log_step()
 
         ave_precis = log_epoch(batch.confusion)
-
-        if scheduler is not None:
-            scheduler.step(ave_precis)
+        scheduler.step(ave_precis)
 
         if ave_precis >= best_precision:
             torch.save(classifier.state_dict(), run_dir + '/best')
