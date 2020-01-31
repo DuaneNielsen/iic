@@ -3,6 +3,44 @@ import argparse
 from pathlib import Path
 import torch
 import collections
+import re
+
+
+class NullScheduler:
+    """ Empty scheduler to used as a placeholder to keep code compatible"""
+    def __init__(self):
+        pass
+
+    def step(self, *args):
+        pass
+
+
+def get_kwargs(args, key):
+    args_dict = vars(args).copy()
+    if key + '_class' not in args_dict:
+        return None, None
+    clazz = args_dict[key + '_class']
+    del args_dict[key + '_class']
+
+    kwargs = {}
+    for k, v in args_dict.items():
+        if k.startswith(key):
+            left, right = k.split('_', 1)
+            if left == key:
+                kwargs[right] = v
+    return clazz, kwargs
+
+
+def get_optim(args, parameters):
+    optim_class, optim_kwargs = get_kwargs(args, 'optim')
+    optim_class = getattr(torch.optim, optim_class)
+    optim = optim_class(parameters, **optim_kwargs)
+    scheduler_class, scheduler_kwargs = get_kwargs(args, 'scheduler')
+    if scheduler_class is None:
+        return optim, NullScheduler()
+    scheduler_class = getattr(torch.optim.lr_scheduler, scheduler_class)
+    scheduler = scheduler_class(optim, **scheduler_kwargs)
+    return optim, scheduler
 
 
 def config(args=None):
@@ -33,14 +71,12 @@ def config(args=None):
     """ model parameters """
     parser.add_argument('--optlevel', type=str)
     parser.add_argument('--model_type', type=str)
-    parser.add_argument('--model_in_channels', type=int)
-    parser.add_argument('--model_keypoints', type=int)
 
     """ hyper-parameters """
-    parser.add_argument('--optimizer', type=str, default='Adam')
-    parser.add_argument('--scheduler', type=str)
+    parser.add_argument('--optim_class', type=str)
+    parser.add_argument('--optim_lr', type=float)
+    parser.add_argument('--scheduler_class', type=str)
     parser.add_argument('--batchsize', type=int)
-    parser.add_argument('--lr', type=float)
 
     """ data and data augmentation parameters """
     parser.add_argument('--dataset_name', type=str)
@@ -68,15 +104,31 @@ def config(args=None):
                 vars(args)[key] = dict[key]
         return args
 
+    """ 
+    required due to https://github.com/yaml/pyyaml/issues/173
+    pyyaml does not correctly parse scientific notation 
+    """
+    loader = yaml.SafeLoader
+    loader.add_implicit_resolver(
+        u'tag:yaml.org,2002:float',
+        re.compile(u'''^(?:
+         [-+]?(?:[0-9][0-9_]*)\\.[0-9_]*(?:[eE][-+]?[0-9]+)?
+        |[-+]?(?:[0-9][0-9_]*)(?:[eE][-+]?[0-9]+)
+        |\\.[0-9_]+(?:[eE][-+][0-9]+)?
+        |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\\.[0-9_]*
+        |[-+]?\\.(?:inf|Inf|INF)
+        |\\.(?:nan|NaN|NAN))$''', re.X),
+        list(u'-+0123456789.'))
+
     if args.config is not None:
         with Path(args.config).open() as f:
-            conf = yaml.load(f, Loader=yaml.FullLoader)
+            conf = yaml.load(f, Loader=loader)
             conf = flatten(conf)
             args = set_if_not_set(args, conf)
 
     defaults = {
-        'optimizer': 'Adam',
-        'lr': 1e-4,
+        'optim_class': 'Adam',
+        'optim_lr': 1e-4,
         'checkpoint_freq': 1000,
         'opt_level': 'O0',
         'display_kp_rows': 4,

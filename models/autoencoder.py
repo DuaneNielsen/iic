@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.mnn import initialize_weights
+from .mnn import initialize_weights
 
 
 class AutoEncoder(nn.Module):

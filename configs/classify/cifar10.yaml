@@ -1,0 +1,21 @@
+batchsize: 128
+epochs: 350
+
+dataset:
+  name: cifar-10-normed
+
+model:
+  name: VGG16
+  type: conv
+  encoder: [3, 64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+
+optim:
+  class: SGD
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  class: MultiStepLR
+  milestones: [150, 250]
+  gamma: 0.1

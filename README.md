@@ -67,6 +67,32 @@ train, test = datapack.make(train_len=10000, test_len=400, data_root='data')
 
 get a training set of length 1000 and a test set of length 400
 
+### Configuring the optimizers
+
+```yaml
+optim:
+  class: SGD
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  class: MultiStepLR
+  milestones: [150, 250]
+  gamma: 0.1
+```
+
+and in the code
+
+```python
+    import config
+    import torch.nn as nn
+
+    args = config.config()
+    model = nn.Linear(10, 2)
+    optim, scheduler = config.get_optim(args, model.parameters())
+```
+
 ### Layer builder
 
 If you get bored of typing the same NN blocks over and over, you can instead use the layer builder.

@@ -3,14 +3,12 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from colorama import Fore, Style
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
 import statistics as stats
 from models import mnn, autoencoder
 from utils.viewer import UniImageViewer, make_grid
 import datasets.package as package
-from config import config
+import config
 
 scale = 4
 view_in = UniImageViewer('in', screen_resolution=(128 * 2 * scale, 128 * scale))
@@ -41,12 +39,12 @@ def log(phase):
 
 if __name__ == '__main__':
 
-    args = config()
+    args = config.config()
     torch.cuda.set_device(args.device)
 
     """ variables """
     best_loss = 100.0
-    run_dir = f'data/models/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
+    run_dir = f'data/models/autoencoders/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
     writer = SummaryWriter(log_dir=run_dir)
     global_step = 0
 
@@ -71,13 +69,7 @@ if __name__ == '__main__':
         auto_encoder.load_state_dict(torch.load(args.load))
 
     """ optimizer """
-    if args.optimizer == 'Adam':
-        optim = Adam(auto_encoder.parameters(), lr=args.lr)
-    elif args.optimizer == 'SGD':
-        optim = SGD(auto_encoder.parameters(), lr=args.lr)
-
-    if args.scheduler is not None:
-        scheduler = ReduceLROnPlateau(optim, mode='min')
+    optim, scheduler = config.get_optim(args, auto_encoder.parameters())
 
     """ apex mixed precision """
     # if args.device != 'cpu':
@@ -100,7 +92,7 @@ if __name__ == '__main__':
                 loss.backward()
                 optim.step()
 
-            batch.set_description(f'Epoch: {epoch} {args.optimizer} LR: {get_lr(optim)} Train Loss: {loss.item()}')
+            batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} Train Loss: {loss.item()}')
 
             log('train')
 
@@ -127,8 +119,7 @@ if __name__ == '__main__':
 
         """ check improvement """
         ave_loss = stats.mean(ll)
-        if args.scheduler is not None:
-            scheduler.step(ave_loss)
+        scheduler.step(ave_loss)
 
         best_loss = ave_loss if ave_loss <= best_loss else best_loss
         print(f'{Fore.CYAN}ave loss: {ave_loss} {Fore.LIGHTBLUE_EX}best loss: {best_loss} {Style.RESET_ALL}')
