@@ -35,6 +35,8 @@ class Batch:
         self.batch = tqdm(loader, total=len(dataset) // args.batchsize)
         self.ll = []
         self.confusion = torch.zeros(num_classes, num_classes)
+        self.total = 0
+        self.correct = 0
 
     def __iter__(self):
         return iter(self.batch)
@@ -43,13 +45,19 @@ class Batch:
         global optim
         self.ll.append(loss.detach().item())
 
+        _, predicted = y.detach().max(1)
+        self.total += target.size(0)
+        self.correct += predicted.eq(target).sum().item()
+
         if self.type == 'train':
-            self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} Train Loss: {loss.item()}')
+            self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} '
+                                       f'Train Loss: {loss.item()} '
+                                       f'Accuracy {100.0 * self.correct/self.total}% {self.correct}/{self.total}')
 
         if self.type == 'test':
-            self.batch.set_description(f'Epoch: {epoch} Test Loss: {stats.mean(self.ll)}')
-
-            _, predicted = y.detach().max(1)
+            self.batch.set_description(f'Epoch: {epoch} Test Loss: {stats.mean(self.ll)} '
+                                       f'Train Loss: {loss.item()} '
+                                       f'Accuracy {100.0 * self.correct/self.total}% {self.correct}/{self.total}')
 
             for p, t in zip(predicted, target):
                 self.confusion[p, t] += 1
@@ -88,8 +96,8 @@ if __name__ == '__main__':
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
-    encoder = mnn.make_layers(args.model_encoder)
-    classifier = models.classifier.Classifier(encoder, num_classes=10, init_weights=True).to(args.device)
+    encoder, output_shape = mnn.make_layers(args.model_encoder, input_shape=datapack.hw)
+    classifier = models.classifier.Classifier(encoder, output_shape, num_classes=num_classes, init_weights=True).to(args.device)
     if args.load is not None:
         classifier.load_state_dict(torch.load(args.load))
 
@@ -127,7 +135,7 @@ if __name__ == '__main__':
             batch.log_step()
 
         ave_precis = log_epoch(batch.confusion)
-        scheduler.step(ave_precis)
+        scheduler.step()
 
         if ave_precis >= best_precision:
             torch.save(classifier.state_dict(), run_dir + '/best')

@@ -39,6 +39,19 @@ def parameter_count(module):
     return sum([p.numel() for p in module.parameters()])
 
 
+def conv_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
+    """
+    Utility function for computing output of convolutions
+    takes a tuple of (h,w) and returns a tuple of (h,w)
+    """
+    from math import floor
+    if type(kernel_size) is int:
+        kernel_size = (kernel_size, kernel_size)
+    h = floor(((h_w[0] + (2 * pad) - (dilation * (kernel_size[0] - 1)) - 1) / stride) + 1)
+    w = floor(((h_w[1] + (2 * pad) - (dilation * (kernel_size[1] - 1)) - 1) / stride) + 1)
+    return h, w
+
+
 """
 M -> MaxPooling
 L -> Capture Activations for Perceptual loss
@@ -50,18 +63,24 @@ def make_layers(cfg,
                 type='conv',
                 batch_norm=True,
                 nonlinearity=None,
-                nonlinearity_kwargs=None):
+                nonlinearity_kwargs=None,
+                input_shape=None):
 
     nonlinearity_kwargs = {} if nonlinearity_kwargs is None else nonlinearity_kwargs
     nonlinearity = nn.ReLU(inplace=True) if nonlinearity is None else nonlinearity(**nonlinearity_kwargs)
+
+    output_shape = input_shape
+    output_channels = None
 
     layers = []
     in_channels = cfg[0]
     for v in cfg[1:]:
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            output_shape = conv_output_shape(output_shape, kernel_size=2, stride=2)
         elif v == 'U':
             layers += [nn.UpsamplingBilinear2d(scale_factor=2)]
+            output_shape = [2 * i for i in output_shape]
         else:
             if type == 'conv':
                 layers += [nn.ReplicationPad2d(1)]
@@ -76,4 +95,9 @@ def make_layers(cfg,
             layers += [nonlinearity]
 
             in_channels = v
-    return nn.Sequential(*layers)
+            output_channels = v
+
+    if input_shape is not None:
+        return nn.Sequential(*layers), (output_channels, *output_shape)
+    else:
+        return nn.Sequential(*layers)
