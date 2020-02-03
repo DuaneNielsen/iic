@@ -5,7 +5,7 @@ from colorama import Fore, Style
 import torch.nn as nn
 import statistics as stats
 import models.classifier
-from models import vgg, mnn
+from models import mnn
 import config
 from datasets import package
 from tensorboardX import SummaryWriter
