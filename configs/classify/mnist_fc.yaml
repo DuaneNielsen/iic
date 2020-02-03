@@ -1,0 +1,21 @@
+batchsize: 128
+epochs: 350
+
+dataset:
+  name: mnist
+
+model:
+  name: fc
+  type: fc
+  encoder: [784, 196, 48, 10]
+
+optim:
+  class: SGD
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 5e-4
+
+scheduler:
+  class: MultiStepLR
+  milestones: [150, 250]
+  gamma: 0.1

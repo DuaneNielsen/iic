@@ -77,27 +77,43 @@ def make_layers(cfg,
     for v in cfg[1:]:
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-            output_shape = conv_output_shape(output_shape, kernel_size=2, stride=2)
+
+            if input_shape is not None:
+                output_shape = conv_output_shape(output_shape, kernel_size=2, stride=2)
+                if min(*output_shape) <= 0:
+                    raise Exception('Image downsampled to 0 or less, use less downsampling')
+
         elif v == 'U':
             layers += [nn.UpsamplingBilinear2d(scale_factor=2)]
-            output_shape = [2 * i for i in output_shape]
+
+            if input_shape is not None:
+                output_shape = [2 * i for i in output_shape]
+
         else:
             if type == 'conv':
                 layers += [nn.ReplicationPad2d(1)]
                 layers += [nn.Conv2d(in_channels, v, kernel_size=3)]
+                output_channels = v
             if type == 'fc':
                 layers += [nn.Linear(in_channels, v)]
+                output_channels = v
             if batch_norm:
                 if type == 'conv':
                     layers += [nn.BatchNorm2d(v)]
+
                 if type == 'fc':
                     layers += [nn.BatchNorm1d(v)]
+
             layers += [nonlinearity]
 
             in_channels = v
-            output_channels = v
 
     if input_shape is not None:
-        return nn.Sequential(*layers), (output_channels, *output_shape)
+        if type == 'fc':
+            output_shape = (output_channels,)
+        if type == 'conv':
+            output_shape = (output_channels, *output_shape)
+
+        return nn.Sequential(*layers), output_shape
     else:
         return nn.Sequential(*layers)

@@ -12,34 +12,30 @@ import config
 
 scale = 4
 view_in = UniImageViewer('in', screen_resolution=(128 * 2 * scale, 128 * scale))
-view_z = UniImageViewer('z', screen_resolution=(128//2 * 5 * scale, 128//2 * 4 * scale))
+view_z = UniImageViewer('z', screen_resolution=(128 // 2 * 5 * scale, 128 // 2 * 4 * scale))
 
 
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
+def main(args):
+    def get_lr(optimizer):
+        for param_group in optimizer.param_groups:
+            return param_group['lr']
 
+    def log(phase):
+        writer.add_scalar(f'{phase}_loss', loss.item(), global_step)
 
-def log(phase):
-    writer.add_scalar(f'{phase}_loss', loss.item(), global_step)
+        if args.display is not None and i % args.display == 0:
+            recon = torch.cat((x[0], x_[0]), dim=2)
+            writer.add_image(f'{phase}_recon', recon, global_step)
 
-    if args.display is not None and i % args.display == 0:
-        recon = torch.cat((x[0], x_[0]), dim=2)
-        writer.add_image(f'{phase}_recon', recon, global_step)
-
-        if args.display:
-            view_in.render(recon)
-
-        if args.model_type != 'fc':
-            latent = make_grid(z[0].unsqueeze(1), 4, 4)
-            writer.add_image(f'{phase}_latent', latent.squeeze(0), global_step)
             if args.display:
-                view_z.render(latent)
+                view_in.render(recon)
 
+            if args.model_type != 'fc':
+                latent = make_grid(z[0].unsqueeze(1), 4, 4)
+                writer.add_image(f'{phase}_latent', latent.squeeze(0), global_step)
+                if args.display:
+                    view_z.render(latent)
 
-if __name__ == '__main__':
-
-    args = config.config()
     torch.cuda.set_device(args.device)
 
     """ variables """
@@ -129,3 +125,6 @@ if __name__ == '__main__':
             torch.save(auto_encoder.state_dict(), run_dir + '/best')
 
 
+if __name__ == '__main__':
+    args = config.config()
+    main(args)
