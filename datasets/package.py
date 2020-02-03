@@ -68,7 +68,7 @@ class ImageDataPack(DataPack):
         """
 
         data = tv.datasets.ImageFolder(str(Path(data_root) / Path(self.subdir)), transform=self.transforms, **kwargs)
-        self.hw = data[0][0].shape[1:]
+        self.shape = data[0][0].shape
         return split(data, train_len, test_len)
 
 
@@ -82,7 +82,7 @@ class Builtin(DataPack):
     def make(self, train_len, test_len, data_root='data', **kwargs):
         train = self.torchv_class(data_root, train=True, transform=self.transforms, download=True)
         test = self.torchv_class(data_root, train=False, transform=self.transforms, download=True)
-        self.hw = train[0][0].shape[1:]
+        self.shape = train[0][0].shape
         if train_len is not None:
             train_len = min(train_len, len(train))
             train = Subset(train, range(0, train_len))

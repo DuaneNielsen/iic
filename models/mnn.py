@@ -1,5 +1,7 @@
 import torch
 from torch import nn as nn
+from models.layerbuilder import LayerBuilder
+from models.resnet import ResNetBuilder
 
 
 class Identity(nn.Module):
@@ -39,29 +41,37 @@ def parameter_count(module):
     return sum([p.numel() for p in module.parameters()])
 
 
-def conv_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
-    """
-    Utility function for computing output of convolutions
-    takes a tuple of (h,w) and returns a tuple of (h,w)
-    """
-    from math import floor
-    if type(kernel_size) is int:
-        kernel_size = (kernel_size, kernel_size)
-    h = floor(((h_w[0] + (2 * pad) - (dilation * (kernel_size[0] - 1)) - 1) / stride) + 1)
-    w = floor(((h_w[1] + (2 * pad) - (dilation * (kernel_size[1] - 1)) - 1) / stride) + 1)
-    return h, w
+class VGGNetBuilder(LayerBuilder):
+    def __init__(self, ):
+        super().__init__()
+
+    def make_block(self, in_channels, v):
+        self.layers += [nn.ReplicationPad2d(1)]
+        self.layers += [nn.Conv2d(in_channels, v, kernel_size=3)]
+        self.layers += [self.nonlinearity]
+        self.shape = (v, self.shape[1], self.shape[2])
 
 
-"""
-M -> MaxPooling
-L -> Capture Activations for Perceptual loss
-U -> Bilinear upsample
-"""
+class FCBuilder(LayerBuilder):
+
+    def make_block(self, in_channels, v):
+        self.layers += [nn.Linear(in_channels, v)]
+        self.layers += [self.nonlinearity]
+        self.shape = (v,)
 
 
-def make_layers(cfg,
+builders = {'vgg': VGGNetBuilder(),
+            'fc': FCBuilder(),
+            'resnet': ResNetBuilder()
+            }
+
+
+def make_layers(cfg, type, input_shape, **kwargs):
+    return builders[type].make_layers(cfg, input_shape, **kwargs)
+
+
+def __make_layers(cfg,
                 type='conv',
-                batch_norm=True,
                 nonlinearity=None,
                 nonlinearity_kwargs=None,
                 input_shape=None):
@@ -97,12 +107,6 @@ def make_layers(cfg,
             if type == 'fc':
                 layers += [nn.Linear(in_channels, v)]
                 output_channels = v
-            if batch_norm:
-                if type == 'conv':
-                    layers += [nn.BatchNorm2d(v)]
-
-                if type == 'fc':
-                    layers += [nn.BatchNorm1d(v)]
 
             layers += [nonlinearity]
 

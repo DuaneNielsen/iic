@@ -30,3 +30,13 @@ def test_mnist_fc():
                           '--dataset_train_len', '256'
                           ])
     train_classifier.main(args)
+
+
+def test_cifar10_resnet():
+    args = config.config(['--config', '../configs/classify/cifar10_resnet.yaml',
+                          '--epochs', '3',
+                          '--dataroot', '../data',
+                          '--dataset_test_len', '256',
+                          '--dataset_train_len', '256'
+                          ])
+    train_classifier.main(args)

@@ -94,7 +94,7 @@ def main(args):
     augment = flatten if args.model_type == 'fc' else nop
 
     """ model """
-    encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.hw)
+    encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.shape)
     classifier = models.classifier.Classifier(encoder, output_shape, num_classes=num_classes, init_weights=True).to(
         args.device)
     if args.load is not None:
