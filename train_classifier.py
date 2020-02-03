@@ -91,10 +91,7 @@ def main(args):
     trainset, testset = datapack.make(args.dataset_train_len, args.dataset_test_len, data_root=args.dataroot)
     train = DataLoader(trainset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
-    if args.model_type == 'fc':
-        augment = flatten
-    else:
-        augment = nop
+    augment = flatten if args.model_type == 'fc' else nop
 
     """ model """
     encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.hw)

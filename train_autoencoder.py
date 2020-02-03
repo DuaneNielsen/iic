@@ -36,6 +36,12 @@ def main(args):
                 if args.display:
                     view_z.render(latent)
 
+    def nop(x):
+        return x
+
+    def flatten(x):
+        return x.flatten(start_dim=1)
+
     torch.cuda.set_device(args.device)
 
     """ variables """
@@ -53,13 +59,8 @@ def main(args):
     """ model """
     encoder = mnn.make_layers(args.model_encoder, type=args.model_type)
     decoder = mnn.make_layers(args.model_decoder, type=args.model_type)
-
-    if args.model_type == 'conv':
-        auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
-    elif args.model_type == 'fc':
-        auto_encoder = autoencoder.LinearAutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
-    else:
-        raise Exception('model type string invalid')
+    auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
+    augment = flatten if args.model_type == 'fc' else nop
 
     if args.load is not None:
         auto_encoder.load_state_dict(torch.load(args.load))
@@ -79,7 +80,7 @@ def main(args):
         """ training """
         batch = tqdm(train_l, total=len(train) // args.batchsize)
         for i, (x, _) in enumerate(batch):
-            x = x.to(args.device)
+            x = augment(x).to(args.device)
 
             optim.zero_grad()
             z, x_ = auto_encoder(x)
@@ -102,7 +103,7 @@ def main(args):
             ll = []
             batch = tqdm(test_l, total=len(test) // args.batchsize)
             for i, (x, _) in enumerate(batch):
-                x = x.to(args.device)
+                x = augment(x).to(args.device)
 
                 z, x_ = auto_encoder(x)
                 loss = criterion(x_, x)

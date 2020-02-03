@@ -21,6 +21,7 @@ def test_cifar10():
                           ])
     train_autoencoder.main(args)
 
+
 def test_mnistfc():
     args = config.config(['--config', '../configs/autoencoder/mnist_fc.yaml',
                           '--epochs', '3',
