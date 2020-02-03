@@ -1,7 +1,8 @@
 import torch
 from torch import nn as nn
-from models.layerbuilder import LayerBuilder
+from models.layerbuilder import FCBuilder
 from models.resnet import ResNetBuilder
+from models.vgg import VGGNetBuilder
 
 
 class Identity(nn.Module):
@@ -41,25 +42,6 @@ def parameter_count(module):
     return sum([p.numel() for p in module.parameters()])
 
 
-class VGGNetBuilder(LayerBuilder):
-    def __init__(self, ):
-        super().__init__()
-
-    def make_block(self, in_channels, v):
-        self.layers += [nn.ReplicationPad2d(1)]
-        self.layers += [nn.Conv2d(in_channels, v, kernel_size=3)]
-        self.layers += [self.nonlinearity]
-        self.shape = (v, self.shape[1], self.shape[2])
-
-
-class FCBuilder(LayerBuilder):
-
-    def make_block(self, in_channels, v):
-        self.layers += [nn.Linear(in_channels, v)]
-        self.layers += [self.nonlinearity]
-        self.shape = (v,)
-
-
 builders = {'vgg': VGGNetBuilder(),
             'fc': FCBuilder(),
             'resnet': ResNetBuilder()
@@ -79,7 +61,7 @@ def __make_layers(cfg,
     nonlinearity_kwargs = {} if nonlinearity_kwargs is None else nonlinearity_kwargs
     nonlinearity = nn.ReLU(inplace=True) if nonlinearity is None else nonlinearity(**nonlinearity_kwargs)
 
-    output_shape = input_shape
+    output_shape = input_shape[1:3]
     output_channels = None
 
     layers = []
@@ -88,8 +70,9 @@ def __make_layers(cfg,
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
 
+            import models
             if input_shape is not None:
-                output_shape = conv_output_shape(output_shape, kernel_size=2, stride=2)
+                output_shape = models.layerbuilder.conv_output_shape(output_shape, kernel_size=2, stride=2)
                 if min(*output_shape) <= 0:
                     raise Exception('Image downsampled to 0 or less, use less downsampling')
 
@@ -100,7 +83,7 @@ def __make_layers(cfg,
                 output_shape = [2 * i for i in output_shape]
 
         else:
-            if type == 'conv':
+            if type == 'vgg':
                 layers += [nn.ReplicationPad2d(1)]
                 layers += [nn.Conv2d(in_channels, v, kernel_size=3)]
                 output_channels = v
@@ -115,7 +98,7 @@ def __make_layers(cfg,
     if input_shape is not None:
         if type == 'fc':
             output_shape = (output_channels,)
-        if type == 'conv':
+        if type == 'vgg':
             output_shape = (output_channels, *output_shape)
 
         return nn.Sequential(*layers), output_shape

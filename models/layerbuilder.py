@@ -1,4 +1,5 @@
 import torch.nn as nn
+from torch import nn as nn
 
 
 def conv_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
@@ -12,7 +13,6 @@ def conv_output_shape(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
     h = floor(((h_w[0] + (2 * pad) - (dilation * (kernel_size[0] - 1)) - 1) / stride) + 1)
     w = floor(((h_w[1] + (2 * pad) - (dilation * (kernel_size[1] - 1)) - 1) / stride) + 1)
     return h, w
-
 
 """
 M -> MaxPooling
@@ -29,9 +29,6 @@ class LayerBuilder:
         self.nonlinearity = None
 
     def make_block(self, in_channels, v):
-        pass
-
-    def output_shape(self):
         pass
 
     def make_layers(self, cfg, input_shape, nonlinearity=None, nonlinearity_kwargs=None):
@@ -57,3 +54,12 @@ class LayerBuilder:
                 in_channels = v
 
         return nn.Sequential(*self.layers), self.shape
+
+
+class FCBuilder(LayerBuilder):
+
+    def make_block(self, in_channels, v):
+        self.layers += [nn.Linear(in_channels, v)]
+        self.layers += [nn.BatchNorm1d(v)]
+        self.layers += [self.nonlinearity]
+        self.shape = (v,)
