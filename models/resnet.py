@@ -49,6 +49,61 @@ class ResNetBuilder(LayerBuilder):
         self.shape = (v, self.shape[1], self.shape[2])
 
 
+class StableBlock(nn.Module):
+    def __init__(self, in_planes, planes, stride=1):
+        super(StableBlock, self).__init__()
+        self.p1 = nn.ReplicationPad2d(1)
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.p2 = nn.ReplicationPad2d(1)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(self.p1(x))))
+        out = self.bn2(self.conv2(self.p2(out)))
+
+        # pad the image if its size is not divisible by 2
+        padding_h = 0 if x.size(2) % 2 == 0 else 1
+        padding_w = 0 if x.size(3) % 2 == 0 else 1
+        id = avg_pool2d(x, 1, stride=1, padding=(padding_h, padding_w))
+
+        # this assumes we are always doubling the amount of kernels as we go deeper
+        if id.size(1) != out.size(1):
+            id = torch.cat((id, id), dim=1)
+
+        out = F.relu(out + id)
+        return out
+
+
+class StableResNetBuilder(LayerBuilder):
+    def __init__(self):
+        super().__init__()
+        self.depth = 1
+
+    def new_layer_hook(self):
+        self.depth = 1
+
+    @staticmethod
+    def initialize_weights(f):
+        for m in f.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def make_block(self, in_channels, v):
+        if self.depth == 1:
+            self.layers += [nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)]
+            self.layers += [nn.BatchNorm2d(v)]
+            self.layers += [self.nonlinearity]
+            self.depth += 1
+            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
+        else:
+            self.layers += [StableBlock(in_channels, v)]
+            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.depth += 1
+
+
 class FixupResLayer(nn.Module):
     def __init__(self, depth, in_layers, filters, stride=1):
         super().__init__()
@@ -109,6 +164,9 @@ class ResNetFixupBuilder(LayerBuilder):
     """
     def __init__(self):
         super().__init__()
+        self.depth = 1
+
+    def new_layer_hook(self):
         self.depth = 1
 
     @staticmethod

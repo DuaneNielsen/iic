@@ -2,7 +2,7 @@ batchsize: 128
 epochs: 350
 
 dataset:
-  name: cifar-10-no-aug
+  name: cifar-10
 
 model:
   name: RESNET12

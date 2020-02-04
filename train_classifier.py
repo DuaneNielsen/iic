@@ -3,7 +3,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from colorama import Fore, Style
 import torch.nn as nn
-import statistics as stats
 import models.classifier
 from models import mnn
 import config
@@ -110,6 +109,7 @@ def main(args):
     """ model """
     encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.shape)
     classifier = models.classifier.Classifier(encoder, output_shape, num_classes=datapack.num_classes).to(args.device)
+    print(classifier)
 
     if args.load is not None:
         classifier.load_state_dict(torch.load(args.load))

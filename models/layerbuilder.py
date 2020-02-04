@@ -28,6 +28,10 @@ class LayerBuilder:
         self.output_channels = None
         self.nonlinearity = None
 
+    # called by make_layers to initialize variables
+    def new_layer_hook(self):
+        pass
+
     @staticmethod
     def initialize_weights(f):
         pass
@@ -40,6 +44,7 @@ class LayerBuilder:
         self.shape = input_shape
         self.output_channels = nonlinearity_kwargs
         self.nonlinearity = nonlinearity
+        self.new_layer_hook()
 
         nonlinearity_kwargs = {} if nonlinearity_kwargs is None else nonlinearity_kwargs
         self.nonlinearity = nn.ReLU(inplace=True) if nonlinearity is None else nonlinearity(**nonlinearity_kwargs)

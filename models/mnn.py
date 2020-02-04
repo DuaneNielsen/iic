@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 from models.layerbuilder import FCBuilder
-from models.resnet import ResNetBuilder, ResNetFixupBuilder
+from models.resnet import ResNetBuilder, ResNetFixupBuilder, StableResNetBuilder
 from models.vgg import VGGNetBuilder
 
 
@@ -33,7 +33,7 @@ def parameter_count(module):
 
 builders = {'vgg': VGGNetBuilder(),
             'fc': FCBuilder(),
-            'resnet': ResNetBuilder(),
+            'resnet': StableResNetBuilder(),
             'resnet-fixup': ResNetFixupBuilder()
             }
 
