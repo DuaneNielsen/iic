@@ -64,16 +64,18 @@ def main(args):
 
             writer.add_scalar(f'{id}_loss', loss.item(), global_step)
             writer.add_scalar(f'{id}_accuracy', accuracy, global_step)
+            return accuracy
 
 
-    def log_epoch(confusion, best_precision):
+    def log_epoch(confusion, best_precision, test_accuracy, train_accuracy):
         precis, ave_precis = precision(confusion)
         print('')
         print(f'{Fore.CYAN}RESULTS FOR EPOCH {Fore.LIGHTYELLOW_EX}{epoch}{Style.RESET_ALL}')
         for i, cls in enumerate(datapack.class_list):
             print(f'{Fore.LIGHTMAGENTA_EX}{cls} : {precis[i].item()}{Style.RESET_ALL}')
         best_precision = ave_precis if ave_precis > best_precision else best_precision
-        print(f'{Fore.GREEN}ave precision : {ave_precis} best: {best_precision} {Style.RESET_ALL}')
+        print(f'{Fore.GREEN}ave precision : {ave_precis} best: {best_precision} test accuracy {test_accuracy} '
+              f'train accuracy {train_accuracy}{Style.RESET_ALL}')
         return ave_precis, best_precision
 
     def nop(args, x, target):
@@ -95,6 +97,8 @@ def main(args):
     global_step = 0
     ave_precision = 0.0
     best_precision = 0.0
+    train_accuracy = 0.0
+    test_accuracy = 0.0
 
     """ data """
     datapack = package.datasets[args.dataset_name]
@@ -104,8 +108,6 @@ def main(args):
     augment = flatten if args.model_type == 'fc' else nop
 
     """ model """
-    #import models.resnet
-    #classifier = models.resnet.DeepResNetFixup().to(args.device)
     encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.shape)
     classifier = models.classifier.Classifier(encoder, output_shape, num_classes=datapack.num_classes).to(args.device)
 
@@ -131,7 +133,7 @@ def main(args):
             loss.backward()
             optim.step()
 
-            batch.log_step()
+            train_accuracy = batch.log_step()
 
             if i % args.checkpoint_freq == 0:
                 torch.save(classifier.state_dict(), run_dir + '/checkpoint')
@@ -143,15 +145,15 @@ def main(args):
             y = classifier(x)
             loss = criterion(y, target)
 
-            batch.log_step()
+            test_accuracy = batch.log_step()
 
-        ave_precision, best_precision = log_epoch(batch.confusion, best_precision)
+        ave_precision, best_precision = log_epoch(batch.confusion, best_precision, test_accuracy, train_accuracy)
         scheduler.step()
 
         if ave_precision >= best_precision:
             torch.save(classifier.state_dict(), run_dir + '/best')
 
-    return ave_precision, best_precision
+    return ave_precision, best_precision, train_accuracy, test_accuracy
 
 
 if __name__ == '__main__':

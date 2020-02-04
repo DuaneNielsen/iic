@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from models.layerbuilder import LayerBuilder, conv_output_shape
 from torch.nn.functional import avg_pool2d
 
+
 class BasicBlock(nn.Module):
     def __init__(self, in_planes, planes, stride=1):
         super(BasicBlock, self).__init__()
@@ -112,6 +113,7 @@ class ResNetFixupBuilder(LayerBuilder):
 
     @staticmethod
     def initialize_weights(f):
+        """  Null init, blocks init themselves"""
         pass
 
     def make_block(self, in_channels, v):

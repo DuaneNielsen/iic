@@ -36,6 +36,10 @@ class LayerBuilder:
         pass
 
     def make_layers(self, cfg, input_shape, nonlinearity=None, nonlinearity_kwargs=None):
+        self.layers = []
+        self.shape = input_shape
+        self.output_channels = nonlinearity_kwargs
+        self.nonlinearity = nonlinearity
 
         nonlinearity_kwargs = {} if nonlinearity_kwargs is None else nonlinearity_kwargs
         self.nonlinearity = nn.ReLU(inplace=True) if nonlinearity is None else nonlinearity(**nonlinearity_kwargs)

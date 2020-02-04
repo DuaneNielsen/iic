@@ -104,14 +104,15 @@ class Builtin(DataPack):
 
 datasets = {
     'celeba': ImageDataPack('celeba', 'celeba-low', datasets.celeba.celeba_transform, datasets.celeba.celeba_transform),
-    'cifar-10': Builtin(tv.datasets.CIFAR10,
-                        tv.transforms.ToTensor(),
-                        tv.transforms.ToTensor(),
-                        class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']),
-    'cifar-10-normed': Builtin(tv.datasets.CIFAR10,
-                               train_transform=datasets.cifar10.transform_train,
-                               test_transform=datasets.cifar10.transform_test,
+    'cifar-10-no-aug': Builtin(tv.datasets.CIFAR10,
+                               tv.transforms.ToTensor(),
+                               tv.transforms.ToTensor(),
                                class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
                                            'truck']),
+    'cifar-10': Builtin(tv.datasets.CIFAR10,
+                        train_transform=datasets.cifar10.transform_train,
+                        test_transform=datasets.cifar10.transform_test,
+                        class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
+                                    'truck']),
     'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10)
 }
