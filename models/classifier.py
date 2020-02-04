@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from models.mnn import initialize_weights
 
 
 class OutputBlock(nn.Module):
@@ -33,6 +32,10 @@ class Vectorizer(nn.Module):
             in_dim = in_dim * i
         self.classifier = nn.Linear(in_dim, num_classes)
 
+        #nn.init.constant_(self.classifier.weight, 1)
+        nn.init.constant_(self.classifier.weight, 0)
+        nn.init.constant_(self.classifier.bias, 0)
+
     def forward(self, x):
         x = torch.flatten(x, start_dim=1)
         x = self.classifier(x)
@@ -40,13 +43,10 @@ class Vectorizer(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, encoder, encoder_output_shape, num_classes, init_weights=True):
+    def __init__(self, encoder, encoder_output_shape, num_classes):
         super().__init__()
         self.encoder = encoder
         self.output_block = Vectorizer(num_classes, encoder_output_shape)
-
-        if init_weights:
-            initialize_weights(self)
 
     def forward(self, x):
         h = self.encoder(x)

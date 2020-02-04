@@ -1,21 +1,23 @@
-batchsize: 128
+batchsize: 64
 epochs: 350
 
 dataset:
   name: mnist
+#  test_len: 1024
+#  train_len: 64
 
 model:
   name: fc
   type: fc
-  encoder: [784, 196, 48, 10]
+  encoder: [784, 2500, 2000, 1500, 1000, 500]
 
-optim:
-  class: SGD
-  lr: 0.1
-  momentum: 0.9
-  weight_decay: 5e-4
+#optim:
+#  class: SGD
+#  lr: 0.1
+#  momentum: 0.9
+#  weight_decay: 5e-4
 
-scheduler:
-  class: MultiStepLR
-  milestones: [150, 250]
-  gamma: 0.1
+#scheduler:
+#  class: MultiStepLR
+#  milestones: [150, 250]
+#  gamma: 0.1

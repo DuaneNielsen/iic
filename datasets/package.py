@@ -6,7 +6,9 @@ from torch import randperm
 from torch._utils import _accumulate
 import datasets.celeba
 import datasets.cifar10
+import datasets.mnist
 from torch.utils.data import Subset
+
 
 def random_split(dataset, lengths):
     r"""
@@ -34,7 +36,8 @@ def split(data, train_len, test_len):
 class DataPack(object):
     def __init__(self):
         self.name = None
-        self.transforms = None
+        self.train_transform = None
+        self.test_transform = None
         self.class_list = []
         self.hw = None
 
@@ -49,12 +52,17 @@ class DataPack(object):
         if class_list is None and class_n is not None:
             self.class_list = list(range(class_n))
 
+    @property
+    def num_classes(self):
+        return len(self.class_list)
+
 
 class ImageDataPack(DataPack):
-    def __init__(self, name, subdir, transforms, class_list=None, class_n=None):
+    def __init__(self, name, subdir, train_transform, test_transform, class_list=None, class_n=None):
         super().__init__()
         self.name = name
-        self.transforms = transforms
+        self.train_transform = train_transform
+        self.test_transform = test_transform
         self.subdir = subdir
         self.add_classes(class_list, class_n)
 
@@ -73,15 +81,17 @@ class ImageDataPack(DataPack):
 
 
 class Builtin(DataPack):
-    def __init__(self, torchv_class, transform, class_list=None, class_n=None):
+    def __init__(self, torchv_class, train_transform, test_transform, class_list=None, class_n=None):
         super().__init__()
-        self.transforms = transform
+        self.train_transform = train_transform
+        self.test_transform = test_transform
+
         self.torchv_class = torchv_class
         self.add_classes(class_list, class_n)
 
     def make(self, train_len, test_len, data_root='data', **kwargs):
-        train = self.torchv_class(data_root, train=True, transform=self.transforms, download=True)
-        test = self.torchv_class(data_root, train=False, transform=self.transforms, download=True)
+        train = self.torchv_class(data_root, train=True, transform=self.train_transform, download=True)
+        test = self.torchv_class(data_root, train=False, transform=self.test_transform, download=True)
         self.shape = train[0][0].shape
         if train_len is not None:
             train_len = min(train_len, len(train))
@@ -93,12 +103,15 @@ class Builtin(DataPack):
 
 
 datasets = {
-    'celeba': ImageDataPack('celeba', 'celeba-low', datasets.celeba.celeba_transform),
+    'celeba': ImageDataPack('celeba', 'celeba-low', datasets.celeba.celeba_transform, datasets.celeba.celeba_transform),
     'cifar-10': Builtin(tv.datasets.CIFAR10,
+                        tv.transforms.ToTensor(),
                         tv.transforms.ToTensor(),
                         class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']),
     'cifar-10-normed': Builtin(tv.datasets.CIFAR10,
-                        transform=datasets.cifar10.normed_transform,
-                        class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']),
-    'mnist': Builtin(tv.datasets.MNIST, tv.transforms.ToTensor(), class_n=10)
+                               train_transform=datasets.cifar10.transform_train,
+                               test_transform=datasets.cifar10.transform_test,
+                               class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
+                                           'truck']),
+    'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10)
 }

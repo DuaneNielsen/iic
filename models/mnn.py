@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 from models.layerbuilder import FCBuilder
-from models.resnet import ResNetBuilder
+from models.resnet import ResNetBuilder, ResNetFixupBuilder
 from models.vgg import VGGNetBuilder
 
 
@@ -11,17 +11,6 @@ class Identity(nn.Module):
 
     def forward(self, x):
         return x
-
-
-def initialize_weights(f):
-    for m in f.modules():
-        if isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            if m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.Linear):
-            nn.init.constant_(m.weight, 1)
-            nn.init.constant_(m.bias, 0)
 
 
 def load_weights(module, weights):
@@ -44,7 +33,8 @@ def parameter_count(module):
 
 builders = {'vgg': VGGNetBuilder(),
             'fc': FCBuilder(),
-            'resnet': ResNetBuilder()
+            'resnet': ResNetBuilder(),
+            'resnet-fixup': ResNetFixupBuilder()
             }
 
 

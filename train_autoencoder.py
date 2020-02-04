@@ -9,6 +9,8 @@ from models import mnn, autoencoder
 from utils.viewer import UniImageViewer, make_grid
 import datasets.package as package
 import config
+import torch.backends.cudnn
+import numpy as np
 
 scale = 4
 view_in = UniImageViewer('in', screen_resolution=(128 * 2 * scale, 128 * scale))
@@ -44,6 +46,13 @@ def main(args):
 
     torch.cuda.set_device(args.device)
 
+    """ reproducibility """
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        np.random.seed(args.seed)
+
     """ variables """
     best_loss = 100.0
     run_dir = f'data/models/autoencoders/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
@@ -57,8 +66,8 @@ def main(args):
     test_l = DataLoader(test, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
-    encoder = mnn.make_layers(args.model_encoder, type=args.model_type)
-    decoder = mnn.make_layers(args.model_decoder, type=args.model_type)
+    encoder = mnn.make_layers(args.model_encoder, type=args.model_type, input_shape=datapack.shape)
+    decoder = mnn.make_layers(args.model_decoder, type=args.model_type, input_shape=datapack.shape)
     auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
     augment = flatten if args.model_type == 'fc' else nop
 

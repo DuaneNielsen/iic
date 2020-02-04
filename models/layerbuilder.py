@@ -28,6 +28,10 @@ class LayerBuilder:
         self.output_channels = None
         self.nonlinearity = None
 
+    @staticmethod
+    def initialize_weights(f):
+        pass
+
     def make_block(self, in_channels, v):
         pass
 
@@ -53,10 +57,22 @@ class LayerBuilder:
                 self.make_block(in_channels, v)
                 in_channels = v
 
-        return nn.Sequential(*self.layers), self.shape
+        layer = nn.Sequential(*self.layers)
+        self.initialize_weights(layer)
+        return layer, self.shape
 
 
 class FCBuilder(LayerBuilder):
+
+    @staticmethod
+    def initialize_weights(f):
+        for m in f.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def make_block(self, in_channels, v):
         self.layers += [nn.Linear(in_channels, v)]

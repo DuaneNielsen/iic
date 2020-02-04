@@ -9,6 +9,8 @@ from models import mnn
 import config
 from datasets import package
 from tensorboardX import SummaryWriter
+import torch.backends.cudnn
+import numpy as np
 
 
 def main(args):
@@ -33,35 +35,36 @@ def main(args):
             self.type = type
             self.loader = loader
             self.batch = tqdm(loader, total=len(dataset) // args.batchsize)
-            self.ll = []
-            self.confusion = torch.zeros(num_classes, num_classes)
+            self.ll = 0
+            self.confusion = torch.zeros(datapack.num_classes, datapack.num_classes)
             self.total = 0
             self.correct = 0
+            self.batch_step = 0
 
         def __iter__(self):
             return iter(self.batch)
 
         def log_step(self):
-            self.ll.append(loss.detach().item())
+            self.batch_step += 1
+            self.ll += loss.detach().item()
 
             _, predicted = y.detach().max(1)
             self.total += target.size(0)
             self.correct += predicted.eq(target).sum().item()
+            running_loss = self.ll / self.batch_step
+            accuracy = 100.0 * self.correct / self.total
 
-            if self.type == 'train':
-                self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} '
-                                           f'Train Loss: {loss.item()} '
-                                           f'Accuracy {100.0 * self.correct / self.total}% {self.correct}/{self.total}')
+            self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} '
+                                       f'{self.type} Loss: {running_loss:.4f} '
+                                       f'Accuracy {accuracy:.4f}% {self.correct}/{self.total}')
 
             if self.type == 'test':
-                self.batch.set_description(f'Epoch: {epoch} Test Loss: {stats.mean(self.ll)} '
-                                           f'Train Loss: {loss.item()} '
-                                           f'Accuracy {100.0 * self.correct / self.total}% {self.correct}/{self.total}')
-
                 for p, t in zip(predicted, target):
                     self.confusion[p, t] += 1
 
             writer.add_scalar(f'{id}_loss', loss.item(), global_step)
+            writer.add_scalar(f'{id}_accuracy', accuracy, global_step)
+
 
     def log_epoch(confusion, best_precision):
         precis, ave_precis = precision(confusion)
@@ -79,24 +82,33 @@ def main(args):
     def flatten(args, x, target):
         return x.flatten(start_dim=1).to(args.device), target.to(args.device)
 
+    """ reproducibility """
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        np.random.seed(args.seed)
+
     """ variables """
     run_dir = f'data/models/classifiers/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
     writer = SummaryWriter(log_dir=run_dir)
     global_step = 0
+    ave_precision = 0.0
     best_precision = 0.0
 
     """ data """
     datapack = package.datasets[args.dataset_name]
-    num_classes = len(datapack.class_list)
     trainset, testset = datapack.make(args.dataset_train_len, args.dataset_test_len, data_root=args.dataroot)
     train = DataLoader(trainset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     augment = flatten if args.model_type == 'fc' else nop
 
     """ model """
+    #import models.resnet
+    #classifier = models.resnet.DeepResNetFixup().to(args.device)
     encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.shape)
-    classifier = models.classifier.Classifier(encoder, output_shape, num_classes=num_classes, init_weights=True).to(
-        args.device)
+    classifier = models.classifier.Classifier(encoder, output_shape, num_classes=datapack.num_classes).to(args.device)
+
     if args.load is not None:
         classifier.load_state_dict(torch.load(args.load))
 
@@ -133,11 +145,13 @@ def main(args):
 
             batch.log_step()
 
-        ave_precis, best_precision = log_epoch(batch.confusion, best_precision)
+        ave_precision, best_precision = log_epoch(batch.confusion, best_precision)
         scheduler.step()
 
-        if ave_precis >= best_precision:
+        if ave_precision >= best_precision:
             torch.save(classifier.state_dict(), run_dir + '/best')
+
+    return ave_precision, best_precision
 
 
 if __name__ == '__main__':
