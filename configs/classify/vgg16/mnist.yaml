@@ -6,7 +6,7 @@ dataset:
 
 model:
   name: VGG16
-  type: vgg
+  type: vgg16
   encoder: [1, 64, 64, 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
 
 optim:

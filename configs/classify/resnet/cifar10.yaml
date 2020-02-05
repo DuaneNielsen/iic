@@ -5,9 +5,9 @@ dataset:
   name: cifar-10
 
 model:
-  name: VGG16
-  type: vgg
-  encoder: [3, 64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+  name: RESNET12
+  type: resnet
+  encoder: [3, 64, 64, 'M', 128, 'M', 256, 256, 'M', 512, 512,'M', 512, 512, 'M']
 
 optim:
   class: SGD

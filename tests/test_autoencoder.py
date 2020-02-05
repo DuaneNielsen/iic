@@ -23,7 +23,7 @@ def test_cifar10():
 
 
 def test_mnistfc():
-    args = config.config(['--config', '../configs/autoencoder/mnist_fc.yaml',
+    args = config.config(['--config', '../configs/autoencoder/mnist.yaml',
                           '--epochs', '3',
                           '--dataroot', '../data',
                           '--dataset_test_len', '256',

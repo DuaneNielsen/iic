@@ -16,7 +16,7 @@ Things to check if the training is not stable...
 
 
 def test_cifar10_vgg16():
-    args = config.config(['--config', '../configs/classify/cifar10_vgg16.yaml',
+    args = config.config(['--config', '../configs/classify/vgg16/cifar10.yaml',
                           '--optim_lr', '0.05',
                           '--epochs', '6',
                           '--dataroot', '../data',
@@ -31,7 +31,7 @@ def test_cifar10_vgg16():
 
 
 def test_mnist_vgg16():
-    args = config.config(['--config', '../configs/classify/mnist_vgg16.yaml',
+    args = config.config(['--config', '../configs/classify/vgg16/mnist.yaml',
                           '--epochs', '5',
                           '--dataroot', '../data',
                           '--dataset_test_len', '256',
@@ -45,7 +45,7 @@ def test_mnist_vgg16():
 
 
 def test_mnist_fc():
-    args = config.config(['--config', '../configs/classify/mnist_fc.yaml',
+    args = config.config(['--config', '../configs/classify/fc/mnist.yaml',
                           '--epochs', '3',
                           '--dataroot', '../data',
                           '--dataset_test_len', '256',
@@ -59,7 +59,7 @@ def test_mnist_fc():
 
 
 def test_cifar10_resnet():
-    args = config.config(['--config', './configs/classify/cifar10/resnet.yaml',
+    args = config.config(['--config', '../configs/classify/resnet/cifar10-batchnorm.yaml',
                           '--epochs', '80',
                           '--optim_lr', '0.01',
                           '--dataroot', '../data',
@@ -76,7 +76,7 @@ def test_cifar10_resnet():
 
 
 def test_cifar10_resnet_fixup():
-    args = config.config(['--config', './configs/classify/cifar10/resnet_fixup.yaml',
+    args = config.config(['--config', '../configs/classify/resnet/cifar10_fixup.yaml',
                           '--optim_lr', '0.05',
                           '--epochs', '80',
                           '--dataroot', '../data',
@@ -92,14 +92,14 @@ def test_cifar10_resnet_fixup():
 
 
 def test_cifar10_resnet_const_fixup():
-    args = config.config(['--config', '../configs/classify/resnet/cifar10_const_fixup.yaml',
+    args = config.config(['--config', '../configs/classify/resnet/cifar10.yaml',
                           '--optim_lr', '0.01',
                           '--epochs', '80',
                           '--dataroot', '../data',
                           '--dataset_test_len', '256',
                           '--dataset_train_len', '256',
                           '--seed', '0',
-                          '--run_id', '5'
+                          '--run_id', '6'
                           ])
     ave_precision, best_precision, train_accuracy, test_accuracy = train_classifier.main(args)
     assert ave_precision > 0.2
