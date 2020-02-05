@@ -89,3 +89,19 @@ def test_cifar10_resnet_fixup():
     assert ave_precision > 0.2
     assert best_precision > 0.2
     assert train_accuracy > 20.0
+
+
+def test_cifar10_resnet_const_fixup():
+    args = config.config(['--config', '../configs/classify/resnet/cifar10_const_fixup.yaml',
+                          '--optim_lr', '0.01',
+                          '--epochs', '80',
+                          '--dataroot', '../data',
+                          '--dataset_test_len', '256',
+                          '--dataset_train_len', '256',
+                          '--seed', '0',
+                          '--run_id', '5'
+                          ])
+    ave_precision, best_precision, train_accuracy, test_accuracy = train_classifier.main(args)
+    assert ave_precision > 0.2
+    assert best_precision > 0.2
+    assert train_accuracy > 20.0
