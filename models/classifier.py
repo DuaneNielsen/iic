@@ -43,10 +43,10 @@ class Vectorizer(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, encoder, encoder_output_shape, num_classes):
+    def __init__(self, encoder, meta, num_classes):
         super().__init__()
         self.encoder = encoder
-        self.output_block = Vectorizer(num_classes, encoder_output_shape)
+        self.output_block = Vectorizer(num_classes, meta.shape)
 
     def forward(self, x):
         h = self.encoder(x)

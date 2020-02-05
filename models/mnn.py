@@ -1,6 +1,6 @@
 import torch
 from torch import nn as nn
-from models.layerbuilder import FCBuilder
+from models.layerbuilder import FCBuilder, LayerMetaData
 from models.resnet import ResNetBuilder, ResNetFixupBuilder, StableResNetBuilder, ConstResNetFixupBuilder
 from models.vgg import VGGNetBuilder
 
@@ -41,5 +41,5 @@ builders = {'vgg16': VGGNetBuilder(),
             }
 
 
-def make_layers(cfg, type, input_shape, **kwargs):
-    return builders[type].make_layers(cfg, input_shape, **kwargs)
+def make_layers(cfg, type, meta, **kwargs):
+    return builders[type].make_layers(cfg, meta, **kwargs)

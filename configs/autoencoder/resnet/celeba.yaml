@@ -1,0 +1,14 @@
+dataset:
+  name: celeba
+  train_len: 10000
+  test_len: 500
+
+model:
+  name: resnet_autoencoder
+  type: resnet
+  encoder: [3, 64, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512]
+  decoder: [512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128, 64, 3]
+  z_channels: 16
+
+epochs: 100
+batchsize: 32

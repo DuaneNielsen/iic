@@ -23,4 +23,4 @@ class VGGNetBuilder(LayerBuilder):
         self.layers += [nn.Conv2d(in_channels, v, kernel_size=3)]
         self.layers += [nn.BatchNorm2d(v)]
         self.layers += [self.nonlinearity]
-        self.shape = (v, self.shape[1], self.shape[2])
+        self.meta.shape = (v, self.meta.shape[1], self.meta.shape[2])

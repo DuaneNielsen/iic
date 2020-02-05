@@ -5,6 +5,7 @@ from colorama import Fore, Style
 import torch.nn as nn
 import models.classifier
 from models import mnn
+from models.layerbuilder import LayerMetaData
 import config
 from datasets import package
 from tensorboardX import SummaryWriter
@@ -107,8 +108,8 @@ def main(args):
     augment = flatten if args.model_type == 'fc' else nop
 
     """ model """
-    encoder, output_shape = mnn.make_layers(args.model_encoder, args.model_type, input_shape=datapack.shape)
-    classifier = models.classifier.Classifier(encoder, output_shape, num_classes=datapack.num_classes).to(args.device)
+    encoder, meta = mnn.make_layers(args.model_encoder, args.model_type, LayerMetaData(datapack.shape))
+    classifier = models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes).to(args.device)
     print(classifier)
 
     if args.load is not None:

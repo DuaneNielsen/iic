@@ -46,7 +46,7 @@ class ResNetBuilder(LayerBuilder):
 
     def make_block(self, in_channels, v):
         self.layers += [BasicBlock(in_channels, v)]
-        self.shape = (v, self.shape[1], self.shape[2])
+        self.meta.shape = (v, self.meta.shape[1], self.meta.shape[2])
 
 
 class StableBlock(nn.Module):
@@ -79,10 +79,6 @@ class StableBlock(nn.Module):
 class StableResNetBuilder(LayerBuilder):
     def __init__(self):
         super().__init__()
-        self.depth = 1
-
-    def new_layer_hook(self):
-        self.depth = 1
 
     @staticmethod
     def initialize_weights(f):
@@ -92,16 +88,16 @@ class StableResNetBuilder(LayerBuilder):
                 nn.init.constant_(m.bias, 0)
 
     def make_block(self, in_channels, v):
-        if self.depth == 1:
+        if self.meta.depth == 1:
             self.layers += [nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)]
             self.layers += [nn.BatchNorm2d(v)]
             self.layers += [self.nonlinearity]
-            self.depth += 1
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.meta.depth += 1
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
         else:
             self.layers += [StableBlock(in_channels, v)]
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
-            self.depth += 1
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.meta.depth += 1
 
 
 class FixupResLayer(nn.Module):
@@ -200,10 +196,6 @@ class ConstResNetFixupBuilder(LayerBuilder):
     """
     def __init__(self):
         super().__init__()
-        self.depth = 1
-
-    def new_layer_hook(self):
-        self.depth = 1
 
     @staticmethod
     def initialize_weights(f):
@@ -211,12 +203,12 @@ class ConstResNetFixupBuilder(LayerBuilder):
         pass
 
     def make_block(self, in_channels, v):
-        if self.depth == 1:
+        if self.meta.depth == 1:
             self.layers += [nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)]
             self.layers += [self.nonlinearity]
-            self.depth += 1
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.meta.depth += 1
+            self.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
         else:
-            self.layers += [FixupResLayer(self.depth, in_channels, v, stride=1)]
-            self.depth += 1
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.layers += [FixupResLayer(self.meta.depth, in_channels, v, stride=1)]
+            self.meta.depth += 1
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)

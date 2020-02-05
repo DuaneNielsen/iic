@@ -4,8 +4,8 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from colorama import Fore, Style
 import torch.nn as nn
-import statistics as stats
 from models import mnn, autoencoder
+from models.layerbuilder import LayerMetaData
 from utils.viewer import UniImageViewer, make_grid
 import datasets.package as package
 import config
@@ -69,8 +69,8 @@ def main(args):
     test_l = DataLoader(test, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
-    encoder, _ = mnn.make_layers(args.model_encoder, type=args.model_type, input_shape=datapack.shape)
-    decoder, _ = mnn.make_layers(args.model_decoder, type=args.model_type, input_shape=datapack.shape)
+    encoder, meta = mnn.make_layers(args.model_encoder, type=args.model_type, meta=LayerMetaData(datapack.shape))
+    decoder, meta = mnn.make_layers(args.model_decoder, type=args.model_type, meta=meta)
     auto_encoder = autoencoder.AutoEncoder(encoder, decoder).to(args.device)
     print(auto_encoder)
     augment = flatten if args.model_type == 'fc' else nop
