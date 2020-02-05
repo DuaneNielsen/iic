@@ -32,7 +32,6 @@ def split(data, train_len, test_len):
     test = Subset(data, range(train_len, total_len))
     return train, test
 
-
 class DataPack(object):
     def __init__(self):
         self.name = None
@@ -57,6 +56,19 @@ class DataPack(object):
         return len(self.class_list)
 
 
+class TransformDataset:
+    def __init__(self, dataset, transform):
+        self.transform = transform
+        self.dataset = dataset
+
+    def __getitem__(self, item):
+        x, target = self.dataset[item]
+        return self.transform(x), target
+
+    def __len__(self):
+        return len(self.dataset)
+
+
 class ImageDataPack(DataPack):
     def __init__(self, name, subdir, train_transform, test_transform, class_list=None, class_n=None):
         super().__init__()
@@ -75,9 +87,13 @@ class ImageDataPack(DataPack):
         :return:
         """
 
-        data = tv.datasets.ImageFolder(str(Path(data_root) / Path(self.subdir)), transform=self.transforms, **kwargs)
-        self.shape = data[0][0].shape
-        return split(data, train_len, test_len)
+        data = tv.datasets.ImageFolder(str(Path(data_root) / Path(self.subdir)), **kwargs)
+
+        train, test = split(data, train_len, test_len)
+        train = TransformDataset(train, self.train_transform)
+        test = TransformDataset(test, self.test_transform)
+        self.shape = train[0][0].shape
+        return train, test
 
 
 class Builtin(DataPack):

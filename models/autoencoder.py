@@ -1,16 +1,11 @@
-import torch
 import torch.nn as nn
-from .mnn import initialize_weights
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, encoder, decoder,
-                 init_weights=True):
+    def __init__(self, encoder, decoder):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
-        if init_weights:
-            initialize_weights(self)
 
     def forward(self, x):
         z = self.encoder(x)

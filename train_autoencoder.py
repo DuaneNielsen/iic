@@ -26,7 +26,7 @@ def main(args):
         writer.add_scalar(f'{phase}_loss', loss.item(), global_step)
 
         if args.display is not None and i % args.display == 0:
-            recon = torch.cat((x[0], x_[0]), dim=2)
+            recon = torch.cat((reverse_augment(x[0]), reverse_augment(x_[0])), dim=2)
             writer.add_image(f'{phase}_recon', recon, global_step)
 
             if args.display:
@@ -43,6 +43,9 @@ def main(args):
 
     def flatten(x):
         return x.flatten(start_dim=1)
+
+    def reverse_flatten(x):
+        return x.reshape(1, 28, 28)
 
     torch.cuda.set_device(args.device)
 
@@ -66,10 +69,12 @@ def main(args):
     test_l = DataLoader(test, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
 
     """ model """
-    encoder = mnn.make_layers(args.model_encoder, type=args.model_type, input_shape=datapack.shape)
-    decoder = mnn.make_layers(args.model_decoder, type=args.model_type, input_shape=datapack.shape)
-    auto_encoder = autoencoder.AutoEncoder(encoder, decoder, init_weights=args.load is None).to(args.device)
+    encoder, _ = mnn.make_layers(args.model_encoder, type=args.model_type, input_shape=datapack.shape)
+    decoder, _ = mnn.make_layers(args.model_decoder, type=args.model_type, input_shape=datapack.shape)
+    auto_encoder = autoencoder.AutoEncoder(encoder, decoder).to(args.device)
+    print(auto_encoder)
     augment = flatten if args.model_type == 'fc' else nop
+    reverse_augment = reverse_flatten if args.model_type == 'fc' else nop
 
     if args.load is not None:
         auto_encoder.load_state_dict(torch.load(args.load))
@@ -109,22 +114,23 @@ def main(args):
 
         """ test  """
         with torch.no_grad():
-            ll = []
+            ll = 0.0
             batch = tqdm(test_l, total=len(test) // args.batchsize)
-            for i, (x, _) in enumerate(batch):
-                x = augment(x).to(args.device)
+            for i, (images, _) in enumerate(batch):
+                x = augment(images).to(args.device)
 
                 z, x_ = auto_encoder(x)
                 loss = criterion(x_, x)
 
-                batch.set_description(f'Epoch: {epoch} Test Loss: {loss.item()}')
-                ll.append(loss.item())
+                ll += loss.item()
+                ave_loss = ll / (i + 1)
+                batch.set_description(f'Epoch: {epoch} Test Loss: {ave_loss}')
+
                 log('test')
 
                 global_step += 1
 
         """ check improvement """
-        ave_loss = stats.mean(ll)
         scheduler.step(ave_loss)
 
         best_loss = ave_loss if ave_loss <= best_loss else best_loss
@@ -133,6 +139,8 @@ def main(args):
         """ save if model improved """
         if ave_loss <= best_loss and not args.demo:
             torch.save(auto_encoder.state_dict(), run_dir + '/best')
+
+    return best_loss
 
 
 if __name__ == '__main__':
