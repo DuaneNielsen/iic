@@ -127,9 +127,11 @@ and in the code
 
 If you get bored of typing the same NN blocks over and over, you can instead use the layer builder.
 
-It works the same as Pytorch built-in layer builder, currently it only builds VGG style blocks
+It works similar to the Pytorch built-in layer builder, it can build
 
-for example
+fully connected: type = 'fc' vgg: type = 'vgg' or resnet: type = 'resnet'
+
+for example, to build vgg blocks...
 
 ```python
 from models.mnn import make_layers
