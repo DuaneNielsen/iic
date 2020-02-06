@@ -1,0 +1,14 @@
+dataset:
+  name: cifar-10
+  train_len: 10000
+  test_len: 500
+
+model:
+  name: resnet_autoencoder
+  type: resnet
+  encoder: ['C:3', 64, 128, 'M', 256, 256, 'M', 256, 256, 512, 512]
+  decoder: [512, 512, 256, 256, 'U', 256, 256, 'U', 128, 64, 'C:3']
+  z_channels: 16
+
+epochs: 100
+batchsize: 16

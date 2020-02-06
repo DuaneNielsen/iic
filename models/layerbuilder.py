@@ -27,6 +27,16 @@ L -> Capture Activations for Perceptual loss
 U -> Bilinear upsample
 """
 
+def scan_token(token):
+    if type(token) is str:
+        t = token.split(':')
+        if len(t) == 2:
+            return t[0], int(t[1])
+        else:
+            return t[0], 0
+    elif type(token) is int:
+        return '', token
+
 
 class LayerBuilder:
     def __init__(self):
@@ -56,20 +66,28 @@ class LayerBuilder:
         nonlinearity_kwargs = {} if nonlinearity_kwargs is None else nonlinearity_kwargs
         self.nonlinearity = nn.ReLU(inplace=True) if nonlinearity is None else nonlinearity(**nonlinearity_kwargs)
 
-        in_channels = cfg[0]
-        for v in cfg[1:]:
-            if v == 'M':
+        tipe, in_channels = scan_token(cfg[0])
+        for token in cfg[1:]:
+            tipe, value = scan_token(token)
+            if tipe == 'M':
                 self.layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
                 self.meta.shape = (self.meta.shape[0], *conv_output_shape(self.meta.shape[1:3], kernel_size=2, stride=2))
                 if min(*self.meta.shape[1:3]) <= 0:
                     raise Exception('Image downsampled to 0 or less, use less downsampling')
 
-            elif v == 'U':
+            elif tipe == 'U':
                 self.layers += [nn.UpsamplingBilinear2d(scale_factor=2)]
                 self.meta.shape = (self.meta.shape[0], self.meta.shape[1] * 2, self.meta.shape[2] * 2)
-            else:
-                self.make_block(in_channels, v)
-                in_channels = v
+
+            elif tipe == 'C':
+                self.layers += [nn.Conv2d(in_channels, value, kernel_size=3, stride=1, padding=1, bias=False)]
+                self.layers += [self.nonlinearity]
+                self.meta.depth += 1
+                self.meta.shape = value, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
+
+            elif tipe == '':
+                self.make_block(in_channels, value)
+                in_channels = value
 
         layer = nn.Sequential(*self.layers)
         self.initialize_weights(layer)

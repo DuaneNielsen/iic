@@ -123,9 +123,14 @@ class FixupResLayer(nn.Module):
         padding_w = 0 if input.size(3) % 2 == 0 else 1
         id = avg_pool2d(input, self.stride, stride=self.stride, padding=(padding_h, padding_w))
 
-        # this assumes we are always doubling the amount of kernels as we go deeper
-        if id.size(1) != hidden.size(1):
+        # if more channels in the next layer, then double
+        if id.size(1) < hidden.size(1):
             id = torch.cat((id, id), dim=1)
+
+        # if less channels in next layer, then halve
+        if id.size(1) > hidden.size(1):
+            id = torch.add(*id.chunk(2, dim=1)) / 2.0
+
         return torch.relu(hidden + id)
 
 
@@ -207,7 +212,7 @@ class ConstResNetFixupBuilder(LayerBuilder):
             self.layers += [nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)]
             self.layers += [self.nonlinearity]
             self.meta.depth += 1
-            self.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=1, pad=1)
         else:
             self.layers += [FixupResLayer(self.meta.depth, in_channels, v, stride=1)]
             self.meta.depth += 1
