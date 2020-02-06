@@ -38,7 +38,7 @@ def test_autoencode_fc_mnist():
     assert best_loss < 1.3
 
 
-def test_autoencode_resnet_celeba():
+def test_autoencode_resnet_cifar10():
 
     args = config.config(['--config', '../configs/autoencoder/resnet/cifar10.yaml',
                           '--epochs', '20',
