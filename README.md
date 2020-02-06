@@ -133,14 +133,18 @@ for example
 
 ```python
 from models.mnn import make_layers
+from models.layerbuilder import LayerMetaData
 
-encoder_core = make_layers([64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'])
+meta = LayerMetaData(input_shape=(32, 32))
 
-decoder_core = make_layers([512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128, 'U', 64, 'U'])
+encoder_core, meta = make_layers(['C:3', 64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], type='vgg', meta=meta)
+
+decoder_core, meta = make_layers([512, 512, 'U', 256, 256, 'U', 256, 256, 'U', 128, 'U', 64, 'U', 'C:3'], type='vgg', meta=meta)
 ```
 
 M -> Max Pooling
 U -> Linear Upsample
+C:3 -> Conv layer with 3 channels
 
 ### Duplicating this project
 
