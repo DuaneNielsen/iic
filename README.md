@@ -151,7 +151,7 @@ C:3 -> Conv layer with 3 channels
 ### Duplicating this project
 
 ```commandline
-git clone --bare https://github.com/DuaneNielsen/deep_learning_base.git
-cd deep_learning_base.git/
+git clone --bare https://github.com/DuaneNielsen/deep_learning.git
+cd deep_learning.git/
 git push --mirror https://github.com/DuaneNielsen/<NEW REPO NAME>.git
 ```
