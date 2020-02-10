@@ -11,10 +11,18 @@ from datasets import package
 from tensorboardX import SummaryWriter
 import torch.backends.cudnn
 import numpy as np
+import torch.nn.functional as F
+
+
+def mi(P):
+    eps = torch.finfo(P.dtype).eps
+    P[P < eps] = eps
+    m0 = torch.sum(P, dim=0, keepdim=True)
+    m1 = torch.sum(P, dim=1, keepdim=True)
+    return torch.sum((P.log2() - m0.log2() - m1.log2()) * P)
 
 
 def main(args):
-
     def precision(confusion):
         correct = confusion * torch.eye(confusion.shape[0])
         incorrect = confusion - correct
@@ -65,7 +73,6 @@ def main(args):
             writer.add_scalar(f'{id}_loss', loss.item(), global_step)
             writer.add_scalar(f'{id}_accuracy', accuracy, global_step)
             return accuracy
-
 
     def log_epoch(confusion, best_precision, test_accuracy, train_accuracy):
         precis, ave_precis = precision(confusion)
@@ -120,6 +127,58 @@ def main(args):
 
     """ loss function """
     criterion = nn.CrossEntropyLoss()
+
+    def IID_loss(x_out, x_tf_out, lamb=1.0):
+        eps = torch.finfo(x_out.dtype).eps
+
+        # has had softmax applied
+        _, k = x_out.size()
+        p_i_j = compute_joint(x_out, x_tf_out)
+        assert (p_i_j.size() == (k, k))
+
+        p_i = p_i_j.sum(dim=1).view(k, 1).expand(k, k)
+        p_j = p_i_j.sum(dim=0).view(1, k).expand(k,
+                                                 k)  # but should be same, symmetric
+
+        # avoid NaN losses. Effect will get cancelled out by p_i_j tiny anyway
+        p_i_j[(p_i_j < eps).data] = eps
+        p_j[(p_j < eps).data] = eps
+        p_i[(p_i < eps).data] = eps
+
+        loss = - p_i_j * (torch.log(p_i_j)
+                          - lamb * torch.log(p_j)
+                          - lamb * torch.log(p_i))
+
+        loss = loss.sum()
+
+        loss_no_lamb = - p_i_j * (torch.log(p_i_j)
+                                  - torch.log(p_j)
+                                  - torch.log(p_i))
+
+        loss_no_lamb = loss_no_lamb.sum()
+
+        return loss, loss_no_lamb
+
+    def compute_joint(x_out, x_tf_out):
+        # produces variable that requires grad (since args require grad)
+
+        bn, k = x_out.size()
+        assert (x_tf_out.size(0) == bn and x_tf_out.size(1) == k)
+
+        p_i_j = x_out.unsqueeze(2) * x_tf_out.unsqueeze(1)  # bn, k, k
+        p_i_j = p_i_j.sum(dim=0)  # k, k
+        p_i_j = (p_i_j + p_i_j.t()) / 2.  # symmetrise
+        p_i_j = p_i_j / p_i_j.sum()  # normalise
+
+        return p_i_j
+
+    def loss(x, x_t):
+
+        x1 = F.softmax(x, dim=1)
+        x2 = F.softmax(x1, dim=1)
+        P = torch.matmul(x1.T, x2) / x1.size(0)
+        P = (P + P.T) / 2.0
+        return - mi(P)
 
     """ training/test loop """
     for i, epoch in enumerate(range(args.epochs)):

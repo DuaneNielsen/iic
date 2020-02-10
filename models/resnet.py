@@ -142,10 +142,6 @@ class ResNetFixupBuilder(LayerBuilder):
     """
     def __init__(self):
         super().__init__()
-        self.depth = 1
-
-    def new_layer_hook(self):
-        self.depth = 1
 
     @staticmethod
     def initialize_weights(f):
@@ -153,15 +149,15 @@ class ResNetFixupBuilder(LayerBuilder):
         pass
 
     def make_block(self, in_channels, v):
-        if self.depth == 1:
+        if self.meta.depth == 1:
             self.layers += [nn.Conv2d(in_channels, v, kernel_size=3, bias=False)]
             self.layers += [self.nonlinearity]
-            self.depth += 1
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=3)
+            self.meta.depth += 1
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=3)
         else:
-            self.layers += [FixupResLayer(self.depth, in_channels, v, stride=2)]
-            self.depth += 1
-            self.shape = v, *conv_output_shape(self.shape[1:3], kernel_size=3, stride=2, pad=1)
+            self.layers += [FixupResLayer(self.meta.depth, in_channels, v, stride=2)]
+            self.meta.depth += 1
+            self.meta.shape = v, *conv_output_shape(self.meta.shape[1:3], kernel_size=3, stride=2, pad=1)
 
 
 class ConstFixupResLayer(nn.Module):
