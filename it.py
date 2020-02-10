@@ -1,5 +1,5 @@
 import torch
-from torch import allclose
+
 
 def entropy(p):
     eps = torch.finfo(p.dtype).eps

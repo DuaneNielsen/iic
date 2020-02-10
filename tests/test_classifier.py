@@ -105,3 +105,5 @@ def test_cifar10_resnet_const_fixup():
     assert ave_precision > 0.2
     assert best_precision > 0.2
     assert train_accuracy > 20.0
+
+

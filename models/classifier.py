@@ -33,7 +33,10 @@ class Vectorizer(nn.Module):
         self.classifier = nn.Linear(in_dim, num_classes)
 
         #nn.init.constant_(self.classifier.weight, 1)
-        nn.init.constant_(self.classifier.weight, 0)
+        #nn.init.constant_(self.classifier.weight, 0)
+        # using a random init for the final layer was critical to create gradients
+        # constant init generates uniform distributions as output, not helpful
+        nn.init.kaiming_uniform(self.classifier.weight)
         nn.init.constant_(self.classifier.bias, 0)
 
     def forward(self, x):

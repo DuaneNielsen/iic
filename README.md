@@ -1,20 +1,16 @@
-# Deep Learning Template Project
+# Invariant Information Clustering for Unsupervised Image Classification and Segmentation
 
-This is my template project for deep learning.
+Reproduction of the IIC paper in pytorch.
 
-Features
+Results for MNIST
 
-* Explicit Pytorch style main loop (if you know Pytorch you can read the main loop)
-* Convention over configuration management from yaml files and command line
-* Simple checkpoint and restore system
-* Simple dataset management
-* Layer builder for building the boring bits
-* Tensorboard logging
-* Real time visualization of layers and outputs during training
+Each row of the below image represents a class
+
+![alt text](./resources/mnist1.png)
 
 ### Basic command usage
 ```commandline
-train.py --config config/cifar10.yaml --display 10
+train_classifier.py --config config/iic/mnist.yaml --display 10
 ```
 Train an autoencoder on cifar10, displaying images every 10 batches
 

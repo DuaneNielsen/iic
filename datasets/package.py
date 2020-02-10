@@ -130,5 +130,6 @@ datasets = {
                         test_transform=datasets.cifar10.transform_test,
                         class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
                                     'truck']),
-    'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10)
+    'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10),
+    'mnist_no_trans': Builtin(tv.datasets.MNIST, datasets.mnist.test_transform, datasets.mnist.test_transform, class_n=10)
 }

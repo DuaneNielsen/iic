@@ -12,6 +12,45 @@ from tensorboardX import SummaryWriter
 import torch.backends.cudnn
 import numpy as np
 import torch.nn.functional as F
+from data_augments import TpsAndRotate, TpsAndRotateSecond
+from utils.viewer import UniImageViewer
+
+viewer = UniImageViewer()
+
+class Guesser():
+    def __init__(self, n):
+        self.hist = torch.zeros(n, n)
+
+    def add(self, y, target):
+        """
+
+        :param y: a distribution over classes(C), dimensions B x C
+        :param target: the known correct target labels, dimension B
+        :return:
+        """
+
+        y = torch.argmax(y, dim=1)
+        self.hist[target, y] += 1
+
+    def guess(self):
+        return torch.argmax(self.hist, dim=0)
+
+
+def show(x, y, columns=10):
+    empty = torch.zeros_like(x[0])
+    clazz = torch.argmax(y, dim=1)
+    assignment = [[] for _ in range(y.size(1))]
+    for image, cls in zip(x, clazz):
+        if len(assignment[cls]) < columns:
+            assignment[cls].append(image)
+
+    for row in assignment:
+        row += [empty for _ in range(columns - len(row))]
+
+    rows = []
+    for column in assignment:
+        rows.append(torch.cat(column, dim=2))
+    return torch.cat(rows, dim=1)
 
 
 def mi(P):
@@ -48,6 +87,7 @@ def main(args):
             self.total = 0
             self.correct = 0
             self.batch_step = 0
+            self.guesser = Guesser(10)
 
         def __iter__(self):
             return iter(self.batch)
@@ -56,6 +96,8 @@ def main(args):
             self.batch_step += 1
             self.ll += loss.detach().item()
 
+            viewer.render(torch.cat((show(x, y), show(x_t, y)), dim=2))
+
             _, predicted = y.detach().max(1)
             self.total += target.size(0)
             self.correct += predicted.eq(target).sum().item()
@@ -63,16 +105,17 @@ def main(args):
             accuracy = 100.0 * self.correct / self.total
 
             self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} '
-                                       f'{self.type} Loss: {running_loss:.4f} '
+                                       f'{self.type} Loss: {running_loss:.12f} '
                                        f'Accuracy {accuracy:.4f}% {self.correct}/{self.total}')
 
             if self.type == 'test':
+                self.guesser.add(y, target)
                 for p, t in zip(predicted, target):
                     self.confusion[p, t] += 1
 
             writer.add_scalar(f'{id}_loss', loss.item(), global_step)
             writer.add_scalar(f'{id}_accuracy', accuracy, global_step)
-            return accuracy
+            return accuracy, self.guesser
 
     def log_epoch(confusion, best_precision, test_accuracy, train_accuracy):
         precis, ave_precis = precision(confusion)
@@ -106,13 +149,16 @@ def main(args):
     best_precision = 0.0
     train_accuracy = 0.0
     test_accuracy = 0.0
+    guesser = None
 
     """ data """
     datapack = package.datasets[args.dataset_name]
     trainset, testset = datapack.make(args.dataset_train_len, args.dataset_test_len, data_root=args.dataroot)
     train = DataLoader(trainset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
-    augment = flatten if args.model_type == 'fc' else nop
+    #augment = flatten if args.model_type == 'fc' else nop
+
+    augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate)
 
     """ model """
     encoder, meta = mnn.make_layers(args.model_encoder, args.model_type, LayerMetaData(datapack.shape))
@@ -172,41 +218,58 @@ def main(args):
 
         return p_i_j
 
-    def loss(x, x_t):
+    def mi_loss(x, x_t):
+        """make a joint distribution from the batch """
+        x = F.softmax(x, dim=1)
+        x_t = F.softmax(x_t, dim=1)
+        P = torch.matmul(x.T, x_t) / x.size(0)
 
-        x1 = F.softmax(x, dim=1)
-        x2 = F.softmax(x1, dim=1)
-        P = torch.matmul(x1.T, x2) / x1.size(0)
+        """symmetrical"""
         P = (P + P.T) / 2.0
+
+        """return negative of mutual information as loss"""
         return - mi(P)
+
+    criterion = mi_loss
+
+    def to_device(data, device):
+        return tuple([x.to(device) for x in data])
 
     """ training/test loop """
     for i, epoch in enumerate(range(args.epochs)):
 
         batch = Batch('train', train, trainset)
-        for x, target in batch:
-            x, target = augment(args, x, target)
+        for data in batch:
+            x, target = to_device(data, device=args.device)
+            x, x_t, loss_mask = augment(x)
+
+            #viewer.render(x_t)
 
             optim.zero_grad()
             y = classifier(x)
-            loss = criterion(y, target)
+            y_t = classifier(x_t)
+            loss = criterion(y, y_t)
             loss.backward()
             optim.step()
 
-            train_accuracy = batch.log_step()
+            train_accuracy, guesser = batch.log_step()
 
             if i % args.checkpoint_freq == 0:
                 torch.save(classifier.state_dict(), run_dir + '/checkpoint')
+        with torch.no_grad():
+            batch = Batch('test', test, testset)
+            for data in batch:
+                x, target = to_device(data, device=args.device)
+                x, x_t, loss_mask = augment(x)
 
-        batch = Batch('test', test, testset)
-        for x, target in batch:
-            x, target = augment(args, x, target)
+                y = classifier(x)
+                y_t = classifier(x_t)
+                loss = criterion(y, y_t)
 
-            y = classifier(x)
-            loss = criterion(y, target)
+                test_accuracy, guesser = batch.log_step()
 
-            test_accuracy = batch.log_step()
-
+        print(guesser.hist)
+        print(guesser.guess())
         ave_precision, best_precision = log_epoch(batch.confusion, best_precision, test_accuracy, train_accuracy)
         scheduler.step()
 
@@ -220,3 +283,5 @@ if __name__ == '__main__':
     """  configuration """
     args = config.config()
     main(args)
+
+

@@ -1,0 +1,15 @@
+batchsize: 256
+epochs: 350
+
+dataset:
+  name: mnist_no_trans
+
+data_aug_type: tps_and_rotate
+data_aug_tps_cntl_pts: 4
+data_aug_tps_variance: 0.05
+data_aug_max_rotate: 0.1
+
+model:
+  name: VGG16
+  type: vgg16
+  encoder: [1, 64, 64, 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
