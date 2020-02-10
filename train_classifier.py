@@ -17,6 +17,7 @@ from utils.viewer import UniImageViewer
 
 viewer = UniImageViewer()
 
+
 class Guesser():
     def __init__(self, n):
         self.hist = torch.zeros(n, n)
@@ -31,6 +32,8 @@ class Guesser():
 
         y = torch.argmax(y, dim=1)
         self.hist[target, y] += 1
+        guess = torch.argmax(self.hist, dim=0)
+        return guess[y]
 
     def guess(self):
         return torch.argmax(self.hist, dim=0)
@@ -95,12 +98,15 @@ def main(args):
         def log_step(self):
             self.batch_step += 1
             self.ll += loss.detach().item()
+            predicted = self.guesser.add(y, target)
 
             viewer.render(torch.cat((show(x, y), show(x_t, y)), dim=2))
 
-            _, predicted = y.detach().max(1)
+            #_, predicted = y.detach().max(1)
+            #predicted = self.guesser.add(y, target)
+
             self.total += target.size(0)
-            self.correct += predicted.eq(target).sum().item()
+            self.correct += predicted.eq(target.cpu()).sum().item()
             running_loss = self.ll / self.batch_step
             accuracy = 100.0 * self.correct / self.total
 
@@ -109,7 +115,6 @@ def main(args):
                                        f'Accuracy {accuracy:.4f}% {self.correct}/{self.total}')
 
             if self.type == 'test':
-                self.guesser.add(y, target)
                 for p, t in zip(predicted, target):
                     self.confusion[p, t] += 1
 

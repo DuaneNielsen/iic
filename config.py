@@ -144,7 +144,7 @@ def config(args=None):
     defaults = {
         'optim_class': 'Adam',
         'optim_lr': 1e-4,
-        'checkpoint_freq': 1000,
+        'checkpoint_freq': 1,
         'opt_level': 'O0',
         'display_kp_rows': 4,
         'display_freq': 5000,
