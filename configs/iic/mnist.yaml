@@ -1,5 +1,5 @@
 batchsize: 256
-epochs: 350
+epochs: 26
 
 dataset:
   name: mnist_no_trans

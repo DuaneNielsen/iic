@@ -14,8 +14,10 @@ import numpy as np
 import torch.nn.functional as F
 from data_augments import TpsAndRotate, TpsAndRotateSecond
 from utils.viewer import UniImageViewer
+from apex import amp
 
 viewer = UniImageViewer()
+global_step = 0.0
 
 
 class Guesser():
@@ -96,6 +98,7 @@ def main(args):
             return iter(self.batch)
 
         def log_step(self):
+            global global_step
             self.batch_step += 1
             self.ll += loss.detach().item()
             predicted = self.guesser.add(y, target)
@@ -118,8 +121,9 @@ def main(args):
                 for p, t in zip(predicted, target):
                     self.confusion[p, t] += 1
 
-            writer.add_scalar(f'{id}_loss', loss.item(), global_step)
-            writer.add_scalar(f'{id}_accuracy', accuracy, global_step)
+            writer.add_scalar(f'{self.type}_loss', loss.item(), global_step)
+            writer.add_scalar(f'{self.type}_accuracy', accuracy, global_step)
+            global_step += 1
             return accuracy, self.guesser
 
     def log_epoch(confusion, best_precision, test_accuracy, train_accuracy):
@@ -154,7 +158,6 @@ def main(args):
     best_precision = 0.0
     train_accuracy = 0.0
     test_accuracy = 0.0
-    guesser = None
 
     """ data """
     datapack = package.datasets[args.dataset_name]
@@ -170,15 +173,22 @@ def main(args):
     classifier = models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes).to(args.device)
     print(classifier)
 
-    if args.load is not None:
-        classifier.load_state_dict(torch.load(args.load))
-
     """ optimizer """
     optim, scheduler = config.get_optim(args, classifier.parameters())
 
-    """ loss function """
-    criterion = nn.CrossEntropyLoss()
+    """ apex mixed precision """
+    opt_level = 'O1'
+    classifier, optim = amp.initialize(classifier, optim, opt_level=opt_level)
 
+    if args.load is not None:
+        checkpoint = torch.load(args.load)
+        classifier.load_state_dict(checkpoint['model'])
+        optim.load_state_dict(checkpoint['optimizer'])
+        amp.load_state_dict(checkpoint['amp'])
+        #classifier.load_state_dict(torch.load(args.load))
+
+
+    """ loss function """
     def IID_loss(x_out, x_tf_out, lamb=1.0):
         eps = torch.finfo(x_out.dtype).eps
 
@@ -254,13 +264,21 @@ def main(args):
             y = classifier(x)
             y_t = classifier(x_t)
             loss = criterion(y, y_t)
-            loss.backward()
+            with amp.scale_loss(loss, optim) as scaled_loss:
+                scaled_loss.backward()
+            #loss.backward()
             optim.step()
 
             train_accuracy, guesser = batch.log_step()
 
             if i % args.checkpoint_freq == 0:
-                torch.save(classifier.state_dict(), run_dir + '/checkpoint')
+                checkpoint = {
+                    'model': classifier.state_dict(),
+                    'optimizer': optim.state_dict(),
+                    'amp': amp.state_dict()
+                }
+                torch.save(checkpoint, run_dir + '/checkpoint_amp.pt')
+                #torch.save(classifier.state_dict(), run_dir + '/checkpoint')
         with torch.no_grad():
             batch = Batch('test', test, testset)
             for data in batch:
@@ -273,13 +291,17 @@ def main(args):
 
                 test_accuracy, guesser = batch.log_step()
 
-        print(guesser.hist)
-        print(guesser.guess())
         ave_precision, best_precision = log_epoch(batch.confusion, best_precision, test_accuracy, train_accuracy)
         scheduler.step()
 
         if ave_precision >= best_precision:
-            torch.save(classifier.state_dict(), run_dir + '/best')
+            #torch.save(classifier.state_dict(), run_dir + '/best')
+            best = {
+                'model': classifier.state_dict(),
+                'optimizer': optim.state_dict(),
+                'amp': amp.state_dict()
+            }
+            torch.save(best, run_dir + '/best_amp.pt')
 
     return ave_precision, best_precision, train_accuracy, test_accuracy
 
