@@ -15,6 +15,8 @@ import torch.nn.functional as F
 from data_augments import TpsAndRotate, TpsAndRotateSecond
 from utils.viewer import UniImageViewer
 from apex import amp
+import wandb
+
 
 viewer = UniImageViewer()
 global_step = 0.0
@@ -123,6 +125,7 @@ def main(args):
 
             writer.add_scalar(f'{self.type}_loss', loss.item(), global_step)
             writer.add_scalar(f'{self.type}_accuracy', accuracy, global_step)
+            wandb.log({f'{self.type}_loss': loss.item(), f'{self.type}_accuracy': accuracy})
             global_step += 1
             return accuracy, self.guesser
 
@@ -309,6 +312,9 @@ def main(args):
 if __name__ == '__main__':
     """  configuration """
     args = config.config()
+    wandb.init(project='iic')
+    wandb.config.update(args)
+
     main(args)
 
 
