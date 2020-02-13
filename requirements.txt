@@ -6,3 +6,5 @@ opencv-python
 numpy
 pyyaml
 tensorboardX
+pygame
+wandb

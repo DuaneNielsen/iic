@@ -32,6 +32,7 @@ def split(data, train_len, test_len):
     test = Subset(data, range(train_len, total_len))
     return train, test
 
+
 class DataPack(object):
     def __init__(self):
         self.name = None
@@ -49,7 +50,7 @@ class DataPack(object):
     def add_classes(self, class_list, class_n):
         self.class_list = class_list
         if class_list is None and class_n is not None:
-            self.class_list = list(range(class_n))
+            self.class_list = [str(i) for i in range(class_n)]
 
     @property
     def num_classes(self):
@@ -130,6 +131,12 @@ datasets = {
                         test_transform=datasets.cifar10.transform_test,
                         class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
                                     'truck']),
+    'cifar-10-normal': Builtin(tv.datasets.CIFAR10,
+                               train_transform=datasets.cifar10.transform_train,
+                               test_transform=datasets.cifar10.transform_test,
+                               class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
+                                           'truck']),
     'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10),
-    'mnist_no_trans': Builtin(tv.datasets.MNIST, datasets.mnist.test_transform, datasets.mnist.test_transform, class_n=10)
+    'mnist_no_trans': Builtin(tv.datasets.MNIST, datasets.mnist.test_transform, datasets.mnist.test_transform,
+                              class_n=10)
 }

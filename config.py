@@ -59,6 +59,7 @@ def config(args=None):
 
     """ config """
     parser = argparse.ArgumentParser(description='configuration switches')
+    parser.add_argument('-n', '--name', type=str, default=None)
     parser.add_argument('-d', '--device', type=str)
     parser.add_argument('-r', '--run_id', type=int, default=-1)
     parser.add_argument('--comment', type=str)

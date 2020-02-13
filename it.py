@@ -1,9 +1,12 @@
 import torch
 
 
-def entropy(p):
+def entropy(p, dim=None):
     eps = torch.finfo(p.dtype).eps
-    return - torch.sum(p * torch.log2(p + eps))
+    if dim is None:
+        return - torch.sum(p * torch.log2(p + eps))
+    else:
+        return - torch.sum(p * torch.log2(p + eps), dim=dim)
 
 
 def conditional(P, given, transpose=False):

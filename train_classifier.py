@@ -16,9 +16,10 @@ from data_augments import TpsAndRotate, TpsAndRotateSecond
 from utils.viewer import UniImageViewer
 from apex import amp
 import wandb
+import it
+from utils.text import text_patch
+import pygame
 
-
-viewer = UniImageViewer()
 global_step = 0.0
 
 
@@ -69,7 +70,7 @@ def mi(P):
 
 
 def main(args):
-    def precision(confusion):
+    def precision(confusion, totals=False):
         correct = confusion * torch.eye(confusion.shape[0])
         incorrect = confusion - correct
         correct = correct.sum(0)
@@ -78,6 +79,8 @@ def main(args):
         total_correct = correct.sum().item()
         total_incorrect = incorrect.sum().item()
         percent_correct = total_correct / (total_correct + total_incorrect)
+        if totals:
+            return precision, percent_correct, total_correct, total_correct + total_incorrect
         return precision, percent_correct
 
     def get_lr(optimizer):
@@ -89,12 +92,16 @@ def main(args):
             self.type = type
             self.loader = loader
             self.batch = tqdm(loader, total=len(dataset) // args.batchsize)
+            self.len_dataset = len(dataset)
             self.ll = 0
             self.confusion = torch.zeros(datapack.num_classes, datapack.num_classes)
             self.total = 0
             self.correct = 0
             self.batch_step = 0
             self.guesser = Guesser(10)
+            self.viewer = UniImageViewer(args.dataset_name, screen_resolution=(1480, 1280))
+            self.total_n = 0
+            self.classes = datapack.class_list
 
         def __iter__(self):
             return iter(self.batch)
@@ -103,12 +110,22 @@ def main(args):
             global global_step
             self.batch_step += 1
             self.ll += loss.detach().item()
+
             predicted = self.guesser.add(y, target)
+            for p, t in zip(predicted, target):
+                self.confusion[p, t] += 1
 
-            viewer.render(torch.cat((show(x, y), show(x_t, y)), dim=2))
+            guesses = self.guesser.guess()
+            label_text = []
+            for guess in guesses:
+                class_txt = self.classes[guess]
+                correct = self.confusion[guess, guess]
+                total = self.confusion[guess].sum()
+                txt = f'  {class_txt}   {correct} / {total}'
+                label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
+            label_text = torch.cat(label_text, dim=1).to(args.device)
 
-            #_, predicted = y.detach().max(1)
-            #predicted = self.guesser.add(y, target)
+            self.viewer.render(torch.cat((label_text, show(x, y), show(x_t, y)), dim=2))
 
             self.total += target.size(0)
             self.correct += predicted.eq(target.cpu()).sum().item()
@@ -117,15 +134,17 @@ def main(args):
 
             self.batch.set_description(f'Epoch: {epoch} {args.optim_class} LR: {get_lr(optim)} '
                                        f'{self.type} Loss: {running_loss:.12f} '
-                                       f'Accuracy {accuracy:.4f}% {self.correct}/{self.total}')
+                                       f'Accuracy {accuracy:.4f}% {self.correct}/{self.total} of {self.len_dataset}')
 
-            if self.type == 'test':
-                for p, t in zip(predicted, target):
-                    self.confusion[p, t] += 1
-
-            writer.add_scalar(f'{self.type}_loss', loss.item(), global_step)
-            writer.add_scalar(f'{self.type}_accuracy', accuracy, global_step)
-            wandb.log({f'{self.type}_loss': loss.item(), f'{self.type}_accuracy': accuracy})
+            max_entropy_P = it.entropy(torch.ones_like(P) / P.numel())
+            max_entropy_y = it.entropy(torch.ones(y.size(1)) / y.size(1))
+            wandb.log({
+                f'{self.type}_loss': loss.item(),
+                f'{self.type}_accuracy': accuracy,
+                f'{self.type}_entropy_P_(max: {max_entropy_P})': it.entropy(P).item(),
+                f'{self.type}_entropy_y_(max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y), dim=1)).item(),
+                f'{self.type}_entropy_yt (max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y_t), dim=1)).item()
+            })
             global_step += 1
             return accuracy, self.guesser
 
@@ -246,7 +265,7 @@ def main(args):
         P = (P + P.T) / 2.0
 
         """return negative of mutual information as loss"""
-        return - mi(P)
+        return - mi(P), P
 
     criterion = mi_loss
 
@@ -266,7 +285,7 @@ def main(args):
             optim.zero_grad()
             y = classifier(x)
             y_t = classifier(x_t)
-            loss = criterion(y, y_t)
+            loss, P = criterion(y, y_t)
             with amp.scale_loss(loss, optim) as scaled_loss:
                 scaled_loss.backward()
             #loss.backward()
@@ -290,7 +309,7 @@ def main(args):
 
                 y = classifier(x)
                 y_t = classifier(x_t)
-                loss = criterion(y, y_t)
+                loss, P = criterion(y, y_t)
 
                 test_accuracy, guesser = batch.log_step()
 
@@ -298,6 +317,7 @@ def main(args):
         scheduler.step()
 
         if ave_precision >= best_precision:
+            wandb.run.summary['best_precision'] = ave_precision
             #torch.save(classifier.state_dict(), run_dir + '/best')
             best = {
                 'model': classifier.state_dict(),
@@ -312,9 +332,10 @@ def main(args):
 if __name__ == '__main__':
     """  configuration """
     args = config.config()
-    wandb.init(project='iic')
+    pygame.init()
+    wandb.init(project='iic', name=args.name)
     wandb.config.update(args)
-
+    torch.cuda.set_device(args.device)
     main(args)
 
 
