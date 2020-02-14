@@ -116,16 +116,16 @@ def main(args):
             for p, t in zip(predicted, target):
                 self.confusion[p, t] += 1
 
-            # guesses = self.guesser.guess()
-            # label_text = []
-            # for guess in guesses:
-            #     class_txt = self.classes[guess]
-            #     correct = self.confusion[guess, guess]
-            #     total = self.confusion[guess].sum()
-            #     txt = f'  {class_txt}   {correct} / {total}'
-            #     label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
-            # label_text = torch.cat(label_text, dim=1).to(args.device)
-            #panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
+            guesses = self.guesser.guess()
+            label_text = []
+            for guess in guesses:
+                class_txt = self.classes[guess]
+                correct = self.confusion[guess, guess]
+                total = self.confusion[guess].sum()
+                txt = f'  {class_txt}   {correct} / {total}'
+                label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
+            label_text = torch.cat(label_text, dim=1).to(args.device)
+            panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
             panel = torch.cat((show(x, y), show(x_t, y)), dim=2)
 
             self.viewer.render(panel)
@@ -334,13 +334,21 @@ def main(args):
             }
             torch.save(best, run_dir + '/best_amp.pt')
 
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                print("pressed CTRL-C as an event")
+                pygame.quit()
+
     return ave_precision, best_precision, train_accuracy, test_accuracy
 
 
 if __name__ == '__main__':
     """ configuration """
     args = config.config()
-    #pygame.init()
+    pygame.init()
     wandb.init(project='iic', name=args.name)
     wandb.config.update(args)
     torch.cuda.set_device(args.device)
