@@ -1,8 +1,10 @@
 batchsize: 64
-epochs: 6
+epochs: 40
 
 dataset:
   name: mnist_no_trans
+  train_len: 4096
+  test_len: 1024
 
 data_aug_type: tps_and_rotate
 data_aug_tps_cntl_pts: 4
