@@ -1,0 +1,17 @@
+program: train_classifier.py 
+command:
+  - python
+  - ${program}
+  - "--config"
+  - configs/iic/mnist.yaml 
+  - "--device" 
+  - cuda:0
+  - ${args}
+method: random
+metric: 
+  name: test_accuracy
+  goal: maximize
+parameters:
+  data_aug_max_rotate:
+    min: 0.1
+    max: 1.4
