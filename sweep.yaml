@@ -17,7 +17,7 @@ early_terminate:
   s: 2
 parameters:
   data_aug_tps_variance:
-    min: 0.4
+    min: 0.04
     max: 0.12
   data_aug_max_rotate:
     min: 0.1
