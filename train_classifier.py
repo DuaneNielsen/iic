@@ -92,6 +92,7 @@ def main(args):
             self.type = type
             self.loader = loader
             self.batch = tqdm(loader, total=len(dataset) // args.batchsize)
+            self.batches = len(dataset) // args.batchsize
             self.len_dataset = len(dataset)
             self.ll = 0
             self.confusion = torch.zeros(datapack.num_classes, datapack.num_classes)
@@ -124,8 +125,9 @@ def main(args):
                 txt = f'  {class_txt}   {correct} / {total}'
                 label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
             label_text = torch.cat(label_text, dim=1).to(args.device)
+            panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
 
-            self.viewer.render(torch.cat((label_text, show(x, y), show(x_t, y)), dim=2))
+            self.viewer.render(panel)
 
             self.total += target.size(0)
             self.correct += predicted.eq(target.cpu()).sum().item()
@@ -138,15 +140,18 @@ def main(args):
 
             max_entropy_P = it.entropy(torch.ones_like(P) / P.numel())
             max_entropy_y = it.entropy(torch.ones(y.size(1)) / y.size(1))
-            wandb.log({
+            wandb_log = {
                 f'{self.type}_loss': loss.item(),
                 f'{self.type}_accuracy': accuracy,
                 f'{self.type}_entropy_P_(max: {max_entropy_P})': it.entropy(P).item(),
                 f'{self.type}_entropy_y_(max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y), dim=1)).item(),
                 f'{self.type}_entropy_yt (max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y_t), dim=1)).item()
-            })
+            }
+            if self.batches == self.batch_step:
+                wandb_log[f'{self.type}_final_results_panel'] = wandb.Image(panel)
+            wandb.log(wandb_log)
             global_step += 1
-            return accuracy, self.guesser
+            return accuracy, self.guesser, panel
 
     def log_epoch(confusion, best_precision, test_accuracy, train_accuracy):
         precis, ave_precis = precision(confusion)
@@ -186,7 +191,7 @@ def main(args):
     trainset, testset = datapack.make(args.dataset_train_len, args.dataset_test_len, data_root=args.dataroot)
     train = DataLoader(trainset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
-    #augment = flatten if args.model_type == 'fc' else nop
+    # augment = flatten if args.model_type == 'fc' else nop
 
     augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate)
 
@@ -207,10 +212,10 @@ def main(args):
         classifier.load_state_dict(checkpoint['model'])
         optim.load_state_dict(checkpoint['optimizer'])
         amp.load_state_dict(checkpoint['amp'])
-        #classifier.load_state_dict(torch.load(args.load))
-
+        # classifier.load_state_dict(torch.load(args.load))
 
     """ loss function """
+
     def IID_loss(x_out, x_tf_out, lamb=1.0):
         eps = torch.finfo(x_out.dtype).eps
 
@@ -272,6 +277,8 @@ def main(args):
     def to_device(data, device):
         return tuple([x.to(device) for x in data])
 
+    panel = None
+
     """ training/test loop """
     for i, epoch in enumerate(range(args.epochs)):
 
@@ -280,7 +287,7 @@ def main(args):
             x, target = to_device(data, device=args.device)
             x, x_t, loss_mask = augment(x)
 
-            #viewer.render(x_t)
+            # viewer.render(x_t)
 
             optim.zero_grad()
             y = classifier(x)
@@ -288,10 +295,10 @@ def main(args):
             loss, P = criterion(y, y_t)
             with amp.scale_loss(loss, optim) as scaled_loss:
                 scaled_loss.backward()
-            #loss.backward()
+            # loss.backward()
             optim.step()
 
-            train_accuracy, guesser = batch.log_step()
+            train_accuracy, guesser, panel = batch.log_step()
 
             if i % args.checkpoint_freq == 0:
                 checkpoint = {
@@ -300,7 +307,7 @@ def main(args):
                     'amp': amp.state_dict()
                 }
                 torch.save(checkpoint, run_dir + '/checkpoint_amp.pt')
-                #torch.save(classifier.state_dict(), run_dir + '/checkpoint')
+                # torch.save(classifier.state_dict(), run_dir + '/checkpoint')
         with torch.no_grad():
             batch = Batch('test', test, testset)
             for data in batch:
@@ -311,14 +318,14 @@ def main(args):
                 y_t = classifier(x_t)
                 loss, P = criterion(y, y_t)
 
-                test_accuracy, guesser = batch.log_step()
+                test_accuracy, guesser, panel = batch.log_step()
 
         ave_precision, best_precision = log_epoch(batch.confusion, best_precision, test_accuracy, train_accuracy)
         scheduler.step()
 
         if ave_precision >= best_precision:
             wandb.run.summary['best_precision'] = ave_precision
-            #torch.save(classifier.state_dict(), run_dir + '/best')
+            # torch.save(classifier.state_dict(), run_dir + '/best')
             best = {
                 'model': classifier.state_dict(),
                 'optimizer': optim.state_dict(),
@@ -337,5 +344,3 @@ if __name__ == '__main__':
     wandb.config.update(args)
     torch.cuda.set_device(args.device)
     main(args)
-
-
