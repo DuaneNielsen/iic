@@ -158,10 +158,11 @@ def main(args):
         print('')
         print(f'{Fore.CYAN}RESULTS FOR EPOCH {Fore.LIGHTYELLOW_EX}{epoch}{Style.RESET_ALL}')
         for i, cls in enumerate(datapack.class_list):
-            print(f'{Fore.LIGHTMAGENTA_EX}{cls} : {precis[i].item()}{Style.RESET_ALL}')
+            print(f'{Fore.LIGHTMAGENTA_EX}{cls} : {precis[i].item():.2f}{Style.RESET_ALL}')
         best_precision = ave_precis if ave_precis > best_precision else best_precision
-        print(f'{Fore.GREEN}ave precision : {ave_precis} best: {best_precision} test accuracy {test_accuracy} '
+        print(f'{Fore.GREEN}ave precision : {ave_precis:.2f} best: {best_precision:.2f} test accuracy {test_accuracy} '
               f'train accuracy {train_accuracy}{Style.RESET_ALL}')
+        wandb.log({'epoch_test_accuracy': test_accuracy})
         return ave_precis, best_precision
 
     def nop(args, x, target):
