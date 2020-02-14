@@ -160,8 +160,11 @@ def main(args):
         for i, cls in enumerate(datapack.class_list):
             print(f'{Fore.LIGHTMAGENTA_EX}{cls} : {precis[i].item():.2f}{Style.RESET_ALL}')
         best_precision = ave_precis if ave_precis > best_precision else best_precision
-        print(f'{Fore.GREEN}ave precision : {ave_precis:.2f} best: {best_precision:.2f} test accuracy {test_accuracy} '
-              f'train accuracy {train_accuracy}{Style.RESET_ALL}')
+        print(f'{Fore.GREEN}'
+              f'ave precision : {ave_precis:.4f} '
+              f'best: {best_precision:.4f} '
+              f'test accuracy {test_accuracy:.4f} '
+              f'train accuracy {train_accuracy:.4f}{Style.RESET_ALL}')
         wandb.log({'epoch_test_accuracy': test_accuracy})
         return ave_precis, best_precision
 
