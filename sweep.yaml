@@ -7,7 +7,7 @@ command:
   - "--device" 
   - cuda:0
   - ${args}
-method: random
+method: bayes
 metric: 
   name: epoch_test_accuracy
   goal: maximize
