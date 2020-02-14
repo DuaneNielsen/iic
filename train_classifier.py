@@ -337,7 +337,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    """  configuration """
+    """ configuration """
     args = config.config()
     pygame.init()
     wandb.init(project='iic', name=args.name)
