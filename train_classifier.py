@@ -116,16 +116,17 @@ def main(args):
             for p, t in zip(predicted, target):
                 self.confusion[p, t] += 1
 
-            guesses = self.guesser.guess()
-            label_text = []
-            for guess in guesses:
-                class_txt = self.classes[guess]
-                correct = self.confusion[guess, guess]
-                total = self.confusion[guess].sum()
-                txt = f'  {class_txt}   {correct} / {total}'
-                label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
-            label_text = torch.cat(label_text, dim=1).to(args.device)
-            panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
+            # guesses = self.guesser.guess()
+            # label_text = []
+            # for guess in guesses:
+            #     class_txt = self.classes[guess]
+            #     correct = self.confusion[guess, guess]
+            #     total = self.confusion[guess].sum()
+            #     txt = f'  {class_txt}   {correct} / {total}'
+            #     label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
+            # label_text = torch.cat(label_text, dim=1).to(args.device)
+            #panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
+            panel = torch.cat((show(x, y), show(x_t, y)), dim=2)
 
             self.viewer.render(panel)
 
@@ -143,9 +144,9 @@ def main(args):
             wandb_log = {
                 f'{self.type}_loss': loss.item(),
                 f'{self.type}_accuracy': accuracy,
-                f'{self.type}_entropy_P_(max: {max_entropy_P})': it.entropy(P).item(),
-                f'{self.type}_entropy_y_(max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y), dim=1)).item(),
-                f'{self.type}_entropy_yt (max: {max_entropy_y})': torch.mean(it.entropy(F.softmax(y_t), dim=1)).item()
+                f'{self.type}_entropy_P_(max: {max_entropy_P:.2f})': it.entropy(P).item(),
+                f'{self.type}_entropy_y_(max: {max_entropy_y:.2f})': torch.mean(it.entropy(F.softmax(y), dim=1)).item(),
+                f'{self.type}_entropy_yt (max: {max_entropy_y:.2f})': torch.mean(it.entropy(F.softmax(y_t), dim=1)).item()
             }
             if self.batches == self.batch_step:
                 wandb_log[f'{self.type}_final_results_panel'] = wandb.Image(panel)
@@ -339,7 +340,7 @@ def main(args):
 if __name__ == '__main__':
     """ configuration """
     args = config.config()
-    pygame.init()
+    #pygame.init()
     wandb.init(project='iic', name=args.name)
     wandb.config.update(args)
     torch.cuda.set_device(args.device)
