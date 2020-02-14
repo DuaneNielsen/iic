@@ -15,3 +15,6 @@ parameters:
   data_aug_max_rotate:
     min: 0.1
     max: 1.4
+  data_aug_tps_variance:
+    min: 0.05
+    max: 0.4

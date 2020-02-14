@@ -193,7 +193,7 @@ def main(args):
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     # augment = flatten if args.model_type == 'fc' else nop
 
-    augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate)
+    augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate, padding_mode='border')
 
     """ model """
     encoder, meta = mnn.make_layers(args.model_encoder, args.model_type, LayerMetaData(datapack.shape))

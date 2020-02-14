@@ -125,33 +125,34 @@ def tps_sample_params(batch_size, num_control_points, var=0.05):
     return theta, cnt_points
 
 
-def tps_transform(x, theta, cnt_points):
+def tps_transform(x, theta, cnt_points, padding_mode='zeros'):
     device = x.device
     grid = tps_grid(theta, cnt_points, x.shape).type_as(x).to(device)
-    return F.grid_sample(x, grid, padding_mode='zeros')
+    return F.grid_sample(x, grid, padding_mode=padding_mode)
 
 
 class RandomTPSTransform(object):
-    def __init__(self, num_control=4, variance=0.05):
+    def __init__(self, num_control=4, variance=0.05, padding_mode='zeros'):
         self.num_control = num_control
         self.var = variance
+        self.padding_mode = padding_mode
 
     def __call__(self, x):
         theta, cnt_points = tps_sample_params(x.size(0), self.num_control, self.var)
         return tps_transform(x, theta, cnt_points)
 
 
-def rotate_affine_grid(x, theta):
+def rotate_affine_grid(x, theta, padding_mode='zeros'):
     theta = torch.tensor([
         [cos(theta), sin(theta), 0.0],
         [-sin(theta), cos(theta), 0.0]
     ]).expand(x.size(0), -1, -1).to(x.device)
 
     grid = F.affine_grid(theta, x.shape)
-    return F.grid_sample(x, grid, padding_mode='zeros')
+    return F.grid_sample(x, grid, padding_mode=padding_mode)
 
 
-def rotate_affine_grid_multi(x, theta):
+def rotate_affine_grid_multi(x, theta, padding_mode='zeros'):
     theta = theta.to(x.device)
     cos_theta = torch.cos(theta)
     sin_theta = torch.sin(theta)
@@ -163,7 +164,7 @@ def rotate_affine_grid_multi(x, theta):
     transform[:, 1, 1] = cos_theta
 
     grid = F.affine_grid(transform, x.shape).to(x.device)
-    return F.grid_sample(x, grid, padding_mode='zeros')
+    return F.grid_sample(x, grid, padding_mode=padding_mode)
 
 
 class Rotate(object):
