@@ -126,7 +126,6 @@ def main(args):
                 label_text.append(text_patch(txt, (x.shape[1], x.shape[2], 200), fontsize=20))
             label_text = torch.cat(label_text, dim=1).to(args.device)
             panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
-            panel = torch.cat((show(x, y), show(x_t, y)), dim=2)
 
             self.viewer.render(panel)
 
