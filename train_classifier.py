@@ -333,13 +333,14 @@ def main(args):
             }
             torch.save(best, run_dir + '/best_amp.pt')
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                print("pressed CTRL-C as an event")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                print('PYGAME QUIT')
                 pygame.quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    print("pressed CTRL-C as an event")
+                    pygame.quit()
 
     return ave_precision, best_precision, train_accuracy, test_accuracy
 
