@@ -92,6 +92,9 @@ def config(args=None):
     parser.add_argument('--dataset_test_len', type=int)
     parser.add_argument('--dataset_randomize', type=int)
 
+    parser.add_argument('--data_aug_max_rotate', type=float)
+    parser.add_argument('--data_aug_tps_variance', type=float)
+
     args = parser.parse_args(args)
 
     def flatten(d, parent_key='', sep='_'):
