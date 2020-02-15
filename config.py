@@ -79,6 +79,7 @@ def config(args=None):
     """ model parameters """
     parser.add_argument('--optlevel', type=str)
     parser.add_argument('--model_type', type=str)
+    parser.add_argument('--model_init', type=str)
 
     """ hyper-parameters """
     parser.add_argument('--optim_class', type=str)
@@ -152,6 +153,7 @@ def config(args=None):
         'opt_level': 'O0',
         'display_kp_rows': 4,
         'display_freq': 5000,
+        'model_init': 'kaiming_normal'
     }
 
     args = set_if_not_set(args, defaults)
