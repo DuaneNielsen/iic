@@ -24,7 +24,7 @@ class OutputBlock(nn.Module):
 
 
 class Vectorizer(nn.Module):
-    def __init__(self, num_classes, input_shape):
+    def __init__(self, num_classes, input_shape, init):
         super().__init__()
 
         in_dim = 1
@@ -32,11 +32,23 @@ class Vectorizer(nn.Module):
             in_dim = in_dim * i
         self.classifier = nn.Linear(in_dim, num_classes)
 
-        #nn.init.constant_(self.classifier.weight, 1)
-        #nn.init.constant_(self.classifier.weight, 0)
         # using a random init for the final layer was critical to create gradients
         # constant init generates uniform distributions as output, not helpful
-        nn.init.kaiming_uniform(self.classifier.weight)
+
+        gain = nn.init.calculate_gain('relu')
+        if init == 'kaiming_uniform':
+            nn.init.kaiming_uniform_(self.classifier.weight, nonlinearity='relu')
+        elif init == 'kaiming_normal':
+            nn.init.kaiming_normal_(self.classifier.weight, nonlinearity='relu')
+        elif init == 'xavier_uniform':
+            nn.init.xavier_uniform_(self.classifier.weight, gain=gain)
+        elif init == 'xavier_normal':
+            nn.init.xavier_normal_(self.classifier.weight, gain=gain)
+        elif init == 'zero':
+            nn.init.constant_(self.classifier.weight, 0)
+        elif init == 'ones':
+            nn.init.constant_(self.classifier.weight, 1)
+
         nn.init.constant_(self.classifier.bias, 0)
 
     def forward(self, x):
@@ -46,10 +58,10 @@ class Vectorizer(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, encoder, meta, num_classes):
+    def __init__(self, encoder, meta, num_classes, init='kaiming_uniform'):
         super().__init__()
         self.encoder = encoder
-        self.output_block = Vectorizer(num_classes, meta.shape)
+        self.output_block = Vectorizer(num_classes, meta.shape, init)
 
     def forward(self, x):
         h = self.encoder(x)

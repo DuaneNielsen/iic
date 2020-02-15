@@ -201,7 +201,7 @@ def main(args):
 
     """ model """
     encoder, meta = mnn.make_layers(args.model_encoder, args.model_type, LayerMetaData(datapack.shape))
-    classifier = models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes).to(args.device)
+    classifier = models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes, init=args.model_init).to(args.device)
     print(classifier)
 
     """ optimizer """
