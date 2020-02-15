@@ -17,4 +17,4 @@ early_terminate:
   s: 2
 parameters:
   model_init:
-    ['kaiming_uniform', 'kaiming_normal', 'xavier_uniform', 'xavier_normal']
+    values: ['kaiming_uniform', 'kaiming_normal', 'xavier_uniform', 'xavier_normal']
