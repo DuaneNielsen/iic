@@ -99,8 +99,11 @@ def main(args):
             self.total = 0
             self.correct = 0
             self.batch_step = 0
-            self.guesser = Guesser(10)
-            self.viewer = UniImageViewer(args.dataset_name, screen_resolution=(1480, 1280))
+            self.guesser = Guesser(datapack.num_classes)
+            height = datapack.num_classes * datapack.shape[1]
+            width = 20 * datapack.shape[2] + 200
+            scale = min(2048//height, 2048//width)
+            self.viewer = UniImageViewer(args.dataset_name, screen_resolution=(width * scale, height * scale))
             self.total_n = 0
             self.classes = datapack.class_list
 
@@ -288,8 +291,8 @@ def main(args):
 
         batch = Batch('train', train, trainset)
         for data in batch:
-            x, target = to_device(data, device=args.device)
-            x, x_t, loss_mask = augment(x)
+            x, x_t, target = to_device(data, device=args.device)
+            _, x_t, loss_mask = augment(x_t)
 
             # viewer.render(x_t)
 
@@ -315,8 +318,8 @@ def main(args):
         with torch.no_grad():
             batch = Batch('test', test, testset)
             for data in batch:
-                x, target = to_device(data, device=args.device)
-                x, x_t, loss_mask = augment(x)
+                x, x_t, target = to_device(data, device=args.device)
+                _, x_t, loss_mask = augment(x_t)
 
                 y = classifier(x)
                 y_t = classifier(x_t)

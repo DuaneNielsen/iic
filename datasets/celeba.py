@@ -1,6 +1,7 @@
-from torchvision import transforms
+from torchvision import transforms as T
 
-celeba_transform = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.ToTensor(),
+celeba_transform = T.Compose([
+    T.Resize((128, 128)),
+    T.ToTensor(),
 ])
+

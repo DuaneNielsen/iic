@@ -8,6 +8,7 @@ import datasets.celeba
 import datasets.cifar10
 import datasets.mnist
 from torch.utils.data import Subset
+from torchvision.transforms import ToTensor
 
 
 def random_split(dataset, lengths):
@@ -36,8 +37,8 @@ def split(data, train_len, test_len):
 class DataPack(object):
     def __init__(self):
         self.name = None
-        self.train_transform = None
-        self.test_transform = None
+        self.train_augment = None
+        self.test_augment = None
         self.class_list = []
         self.hw = None
 
@@ -58,13 +59,17 @@ class DataPack(object):
 
 
 class TransformDataset:
-    def __init__(self, dataset, transform):
-        self.transform = transform
+    def __init__(self, dataset, baseline_tranform=None, augment_transform=None):
+        if baseline_tranform:
+            self.baseline_transform = baseline_tranform
+        else:
+            self.baseline_transform = ToTensor()
+        self.augment_transform = augment_transform
         self.dataset = dataset
 
     def __getitem__(self, item):
         x, target = self.dataset[item]
-        return self.transform(x), target
+        return self.baseline_transform(x), self.augment_transform(x), target
 
     def __len__(self):
         return len(self.dataset)
@@ -91,24 +96,30 @@ class ImageDataPack(DataPack):
         data = tv.datasets.ImageFolder(str(Path(data_root) / Path(self.subdir)), **kwargs)
 
         train, test = split(data, train_len, test_len)
-        train = TransformDataset(train, self.train_transform)
-        test = TransformDataset(test, self.test_transform)
+        train = TransformDataset(train, None, self.train_transform)
+        test = TransformDataset(test, None, self.test_transform)
         self.shape = train[0][0].shape
         return train, test
 
 
 class Builtin(DataPack):
-    def __init__(self, torchv_class, train_transform, test_transform, class_list=None, class_n=None):
+    def __init__(self, torchv_class, train_augment, test_augment, train_baseline=None, test_baseline=None,
+                 class_list=None, class_n=None):
         super().__init__()
-        self.train_transform = train_transform
-        self.test_transform = test_transform
+        self.train_augment = train_augment
+        self.test_augment = test_augment
+        self.train_baseline = train_baseline
+        self.test_baseline = test_baseline
 
         self.torchv_class = torchv_class
         self.add_classes(class_list, class_n)
 
     def make(self, train_len, test_len, data_root='data', **kwargs):
-        train = self.torchv_class(data_root, train=True, transform=self.train_transform, download=True)
-        test = self.torchv_class(data_root, train=False, transform=self.test_transform, download=True)
+        train = self.torchv_class(data_root, train=True, transform=None, download=True)
+        train = TransformDataset(train, baseline_tranform=self.train_baseline, augment_transform=self.train_augment)
+        test = self.torchv_class(data_root, train=False, transform=None, download=True)
+        test = TransformDataset(test, baseline_tranform=self.test_baseline, augment_transform=self.test_augment)
+
         self.shape = train[0][0].shape
         if train_len is not None:
             train_len = min(train_len, len(train))
@@ -121,22 +132,20 @@ class Builtin(DataPack):
 
 datasets = {
     'celeba': ImageDataPack('celeba', 'celeba-low', datasets.celeba.celeba_transform, datasets.celeba.celeba_transform),
-    'cifar-10-no-aug': Builtin(tv.datasets.CIFAR10,
-                               tv.transforms.ToTensor(),
-                               tv.transforms.ToTensor(),
-                               class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
-                                           'truck']),
-    'cifar-10': Builtin(tv.datasets.CIFAR10,
-                        train_transform=datasets.cifar10.transform_train,
-                        test_transform=datasets.cifar10.transform_test,
-                        class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
-                                    'truck']),
-    'cifar-10-normal': Builtin(tv.datasets.CIFAR10,
-                               train_transform=datasets.cifar10.transform_train,
-                               test_transform=datasets.cifar10.transform_test,
-                               class_list=['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
-                                           'truck']),
     'mnist': Builtin(tv.datasets.MNIST, datasets.mnist.train_transform, datasets.mnist.test_transform, class_n=10),
     'mnist_no_trans': Builtin(tv.datasets.MNIST, datasets.mnist.test_transform, datasets.mnist.test_transform,
                               class_n=10)
 }
+
+
+def register(key, datapack):
+    datasets[key] = datapack
+
+
+def get(key):
+    return datasets[key]
+
+
+def list():
+    for key in datasets:
+        print(key)

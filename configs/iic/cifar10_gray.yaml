@@ -1,8 +1,10 @@
-batchsize: 64
-epochs: 10
+batchsize: 128
+epochs: 260
 
 dataset:
-  name: mnist_no_trans
+  name: cifar-10-grad
+  train_len: 8192
+  test_len: 2048
 
 data_aug_type: tps_and_rotate
 data_aug_tps_cntl_pts: 4
