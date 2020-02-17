@@ -1,6 +1,6 @@
 import torch
 
-from tps import tps_sample_params, tps_transform, rotate_affine_grid_multi
+from iic.tps import tps_sample_params, tps_transform, rotate_affine_grid_multi
 
 
 def rand_peturb_params(batch_items, tps_cntl_pts, tps_variance, max_rotate):

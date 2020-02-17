@@ -1,6 +1,6 @@
 from torch import nn as nn
 
-from models.layerbuilder import LayerBuilder
+from iic.models.layerbuilder import LayerBuilder
 
 
 class VGGNetBuilder(LayerBuilder):

@@ -1,8 +1,8 @@
 import torch
 
 from train_classifier import show, Guesser
-from utils.text import text_patch
-from utils.viewer import UniImageViewer
+from iic.utils.text import text_patch
+from iic.utils.viewer import UniImageViewer
 from torchvision.datasets import MNIST
 from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader

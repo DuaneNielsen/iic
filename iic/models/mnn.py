@@ -1,8 +1,8 @@
 import torch
 from torch import nn as nn
-from models.layerbuilder import FCBuilder, LayerMetaData
-from models.resnet import ResNetBuilder, ResNetFixupBuilder, StableResNetBuilder, ConstResNetFixupBuilder
-from models.vgg import VGGNetBuilder
+from iic.models.layerbuilder import FCBuilder
+from iic.models.resnet import ResNetBuilder, ResNetFixupBuilder, StableResNetBuilder, ConstResNetFixupBuilder
+from iic.models.vgg import VGGNetBuilder
 
 
 class Identity(nn.Module):

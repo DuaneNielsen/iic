@@ -4,11 +4,11 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from colorama import Fore, Style
 import torch.nn as nn
-from models import mnn, autoencoder
-from models.layerbuilder import LayerMetaData
-from utils.viewer import UniImageViewer, make_grid
+from iic.models import autoencoder, mnn
+from iic.models.layerbuilder import LayerMetaData
+from iic.utils.viewer import UniImageViewer, make_grid
 import datasets.package as package
-import config
+from iic import config
 import torch.backends.cudnn
 import numpy as np
 

@@ -1,5 +1,5 @@
 import train_autoencoder
-import config
+from iic import config
 
 
 def test_autoencode_vgg16_celeba():

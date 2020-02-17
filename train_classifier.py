@@ -2,23 +2,22 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from colorama import Fore, Style
-import torch.nn as nn
-import models.classifier
-from models import mnn
-from models.layerbuilder import LayerMetaData
-import config
+import iic.models.classifier
+from iic.models import mnn
+from iic.models.layerbuilder import LayerMetaData
+from iic import config, it
 from datasets import package
 from tensorboardX import SummaryWriter
 import torch.backends.cudnn
 import numpy as np
 import torch.nn.functional as F
-from data_augments import TpsAndRotate, TpsAndRotateSecond
-from utils.viewer import UniImageViewer
+from iic.data_augments import TpsAndRotateSecond
+from iic.utils.viewer import UniImageViewer
 from apex import amp
 import wandb
-import it
-from utils.text import text_patch
+from iic.utils.text import text_patch
 import pygame
+import torch.onnx
 
 global_step = 0.0
 
@@ -102,7 +101,7 @@ def main(args):
             self.guesser = Guesser(datapack.num_classes)
             height = datapack.num_classes * datapack.shape[1]
             width = 20 * datapack.shape[2] + 200
-            scale = min(2048//height, 2048//width)
+            scale = min(2048 // height, 2048 // width)
             self.viewer = UniImageViewer(args.dataset_name, screen_resolution=(width * scale, height * scale))
             self.total_n = 0
             self.classes = datapack.class_list
@@ -148,7 +147,8 @@ def main(args):
                 f'{self.type}_accuracy': accuracy,
                 f'{self.type}_entropy_P_(max: {max_entropy_P:.2f})': it.entropy(P).item(),
                 f'{self.type}_entropy_y_(max: {max_entropy_y:.2f})': torch.mean(it.entropy(F.softmax(y), dim=1)).item(),
-                f'{self.type}_entropy_yt (max: {max_entropy_y:.2f})': torch.mean(it.entropy(F.softmax(y_t), dim=1)).item()
+                f'{self.type}_entropy_yt (max: {max_entropy_y:.2f})': torch.mean(
+                    it.entropy(F.softmax(y_t), dim=1)).item()
             }
             if self.batches == self.batch_step:
                 wandb_log[f'{self.type}_final_results_panel'] = wandb.Image(panel)
@@ -200,11 +200,13 @@ def main(args):
     test = DataLoader(testset, batch_size=args.batchsize, shuffle=True, drop_last=True, pin_memory=True)
     # augment = flatten if args.model_type == 'fc' else nop
 
-    augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate, padding_mode='border')
+    augment = TpsAndRotateSecond(args.data_aug_tps_cntl_pts, args.data_aug_tps_variance, args.data_aug_max_rotate,
+                                 padding_mode='border')
 
     """ model """
     encoder, meta = mnn.make_layers(args.model_encoder, args.model_type, LayerMetaData(datapack.shape))
-    classifier = models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes, init=args.model_init).to(args.device)
+    classifier = iic.models.classifier.Classifier(encoder, meta, num_classes=datapack.num_classes, init=args.model_init).to(
+        args.device)
     print(classifier)
 
     """ optimizer """
@@ -220,6 +222,14 @@ def main(args):
         optim.load_state_dict(checkpoint['optimizer'])
         amp.load_state_dict(checkpoint['amp'])
         # classifier.load_state_dict(torch.load(args.load))
+
+    if args.export:
+        dummy_input = torch.randn(10, 3, 16, 16, device=args.device)
+        input_names = ['image']
+        output_names = ['class']
+        torch.onnx.export(classifier, dummy_input, 'pong_v1_classifier.onnx', verbose=True, input_names=input_names,
+                          output_names=output_names)
+        exit()
 
     """ loss function """
 

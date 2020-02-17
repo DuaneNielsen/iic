@@ -111,7 +111,8 @@ scheduler:
 and in the code
 
 ```python
-    import config
+
+from iic import config
     import torch.nn as nn
 
     args = config.config()
@@ -130,8 +131,8 @@ fully connected: type = 'fc' vgg: type = 'vgg' or resnet: type = 'resnet'
 for example, to build vgg blocks...
 
 ```python
-from models.mnn import make_layers
-from models.layerbuilder import LayerMetaData
+from iic.models.mnn import make_layers
+from iic.models.layerbuilder import LayerMetaData
 
 meta = LayerMetaData(input_shape=(32, 32))
 

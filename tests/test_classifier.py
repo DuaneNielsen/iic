@@ -1,5 +1,5 @@
 import train_classifier
-import config
+from iic import config
 
 """
 These unit tests run quickly to check if the models show signs of life.

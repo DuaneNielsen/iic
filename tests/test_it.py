@@ -1,4 +1,4 @@
-from it import *
+from iic.it import *
 import torch
 from torch import allclose
 import train_classifier

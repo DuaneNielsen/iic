@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.layerbuilder import LayerBuilder, conv_output_shape
+from iic.models.layerbuilder import LayerBuilder, conv_output_shape
 from torch.nn.functional import avg_pool2d
 
 

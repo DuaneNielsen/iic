@@ -72,6 +72,7 @@ def config(args=None):
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--processes', type=int)
     parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--export', type=str, default=None)
 
     """ visualization params """
     parser.add_argument('--display', type=int)
