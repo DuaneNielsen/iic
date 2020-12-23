@@ -1,6 +1,6 @@
 # Invariant Information Clustering for Unsupervised Image Classification and Segmentation
 
-Reproduction of the IIC paper in pytorch.
+Reproduction of the [IIC paper](https://arxiv.org/abs/1807.06653) in pytorch.
 
 Results for MNIST
 
